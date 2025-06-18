@@ -127,7 +127,7 @@
                             'Accept': 'application/json',
                             'Content-Type': 'application/json',
                             'X-UserToken': window.g_ck || '',  // Add this line
-                            'X-Requested-With': 'XMLHttpRequest',
+                            //'X-Requested-With': 'XMLHttpRequest',
                             'Cache-Control': 'no-cache',
                             'X-WantSessionNotificationMessages': 'true'
                         },
@@ -169,7 +169,7 @@
                         headers: {
                             'Accept': 'application/json',
                             'X-UserToken': window.g_ck || '',  // Add this line
-                            'X-Requested-With': 'XMLHttpRequest',
+                            //'X-Requested-With': 'XMLHttpRequest',
                             'Cache-Control': 'no-cache',
                             'X-WantSessionNotificationMessages': 'true'
                         },
@@ -213,7 +213,7 @@
                         headers: {
                             'Accept': 'application/json',
                             'X-UserToken': window.g_ck || '',  // Add this line
-                            'X-Requested-With': 'XMLHttpRequest',
+                            //'X-Requested-With': 'XMLHttpRequest',
                             'X-WantSessionNotificationMessages': 'true'
                         },
                         credentials: 'include'
@@ -321,7 +321,7 @@
                         headers: {
                             'Accept': 'application/json',
                             'X-UserToken': window.g_ck || '',  // Add this line
-                            'X-Requested-With': 'XMLHttpRequest',
+                            //'X-Requested-With': 'XMLHttpRequest',
                             'X-WantSessionNotificationMessages': 'true'
                         },
                         credentials: 'include'
@@ -365,7 +365,7 @@
                         headers: {
                             'Accept': 'application/json',
                             'X-UserToken': window.g_ck || '',  // Add this line
-                            'X-Requested-With': 'XMLHttpRequest'
+                            //'X-Requested-With': 'XMLHttpRequest'
                         },
                         credentials: 'include'
                     },
