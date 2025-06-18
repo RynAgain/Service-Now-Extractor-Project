@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         ServiceNow Ticket Data Extractor v4.0 (Modular)
 // @namespace    http://tampermonkey.net/
-// @version      4.1.001
+// @version      4.1.002
 // @description  Extract ServiceNow ticket metadata to Excel - Modular Version
 // @author       Ryan Satterfield
 // @match        https://wfmprod.service-now.com/*

@@ -61,8 +61,8 @@
                     headers: {
                         ...options.headers,
                         // Add ServiceNow-specific headers
-                        'X-UserToken': sessionCookies.glide_user_route || '',
-                        'X-Transaction-Source': 'Tampermonkey Script'
+                        'X-UserToken': window.g_ck || ''  // Add this line
+                        //'X-Transaction-Source': 'Tampermonkey Script' // this seems wrong, we are trying to piggy back here so we wouldn't want to announce a different source
                     }
                 };
 
@@ -126,6 +126,7 @@
                         headers: {
                             'Accept': 'application/json',
                             'Content-Type': 'application/json',
+                            'X-UserToken': window.g_ck || '',  // Add this line
                             'X-Requested-With': 'XMLHttpRequest',
                             'Cache-Control': 'no-cache',
                             'X-WantSessionNotificationMessages': 'true'
@@ -167,6 +168,7 @@
                         method: 'GET',
                         headers: {
                             'Accept': 'application/json',
+                            'X-UserToken': window.g_ck || '',  // Add this line
                             'X-Requested-With': 'XMLHttpRequest',
                             'Cache-Control': 'no-cache',
                             'X-WantSessionNotificationMessages': 'true'
@@ -210,6 +212,7 @@
                         method: 'GET',
                         headers: {
                             'Accept': 'application/json',
+                            'X-UserToken': window.g_ck || '',  // Add this line
                             'X-Requested-With': 'XMLHttpRequest',
                             'X-WantSessionNotificationMessages': 'true'
                         },
@@ -317,6 +320,7 @@
                         method: 'GET',
                         headers: {
                             'Accept': 'application/json',
+                            'X-UserToken': window.g_ck || '',  // Add this line
                             'X-Requested-With': 'XMLHttpRequest',
                             'X-WantSessionNotificationMessages': 'true'
                         },
@@ -360,6 +364,7 @@
                         method: 'GET',
                         headers: {
                             'Accept': 'application/json',
+                            'X-UserToken': window.g_ck || '',  // Add this line
                             'X-Requested-With': 'XMLHttpRequest'
                         },
                         credentials: 'include'

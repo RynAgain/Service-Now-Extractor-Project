@@ -75,6 +75,7 @@
                 headers: {
                     'Accept': 'application/json',
                     'Content-Type': 'application/json',
+                    'X-UserToken': window.g_ck || '',  // Add this line
                     'X-Requested-With': 'XMLHttpRequest',
                     'X-WantSessionNotificationMessages': 'true',
                     'Cache-Control': 'no-cache'
@@ -97,6 +98,7 @@
                     headers: {
                         'Accept': 'application/json',
                         'Content-Type': 'application/json',
+                        'X-UserToken': window.g_ck || '',  // Add this line
                         'X-Requested-With': 'XMLHttpRequest',
                         'X-WantSessionNotificationMessages': 'true',
                         'Cache-Control': 'no-cache'
@@ -182,6 +184,7 @@
                     method: 'GET',
                     headers: {
                         'Accept': 'application/json',
+                        'X-UserToken': window.g_ck || '',  // Add this line
                         'X-Requested-With': 'XMLHttpRequest'
                     },
                     credentials: 'include'
