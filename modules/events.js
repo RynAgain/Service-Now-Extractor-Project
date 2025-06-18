@@ -53,7 +53,8 @@
             this.bindElement('clear-all-fields', 'click', this.clearAllFields);
 
             // Action buttons
-            this.bindElement('extract-current', 'click', this.extractCurrentPageTickets);
+            this.bindElement('test-connection', 'click', this.testConnection);
+            this.bindElement('get-available-tables', 'click', this.getAvailableTables);
             this.bindElement('extract-query', 'click', this.extractByQuery);
             this.bindElement('export-excel', 'click', this.exportToExcel);
             this.bindElement('clear-data', 'click', this.clearData);
@@ -213,9 +214,15 @@
         },
 
         // Action buttons
-        extractCurrentPageTickets: function() {
-            if (window.SNExtractorMain && window.SNExtractorMain.extractCurrentPageTickets) {
-                window.SNExtractorMain.extractCurrentPageTickets();
+        testConnection: function() {
+            if (window.SNExtractorMain && window.SNExtractorMain.testConnection) {
+                window.SNExtractorMain.testConnection();
+            }
+        },
+
+        getAvailableTables: function() {
+            if (window.SNExtractorMain && window.SNExtractorMain.getAvailableTables) {
+                window.SNExtractorMain.getAvailableTables();
             }
         },
 
@@ -244,14 +251,14 @@
                 const container = document.getElementById('ticket-extractor-ui');
                 if (!container) return;
 
-                // Ctrl/Cmd + E: Extract current page
-                if ((e.ctrlKey || e.metaKey) && e.key === 'e') {
+                // Ctrl/Cmd + T: Test connection
+                if ((e.ctrlKey || e.metaKey) && e.key === 't') {
                     e.preventDefault();
-                    this.extractCurrentPageTickets();
+                    this.testConnection();
                 }
 
-                // Ctrl/Cmd + Q: Extract by query
-                if ((e.ctrlKey || e.metaKey) && e.key === 'q') {
+                // Ctrl/Cmd + E: Extract by query
+                if ((e.ctrlKey || e.metaKey) && e.key === 'e') {
                     e.preventDefault();
                     this.extractByQuery();
                 }
@@ -305,8 +312,8 @@
                 `;
 
                 const menuItems = [
-                    { text: 'Extract Current Page', action: () => this.extractCurrentPageTickets() },
-                    { text: 'Extract by Query', action: () => this.extractByQuery() },
+                    { text: 'Test API Connection', action: () => this.testConnection() },
+                    { text: 'Extract via API', action: () => this.extractByQuery() },
                     { text: 'Export to Excel', action: () => this.exportToExcel() },
                     { text: '---', action: null },
                     { text: 'Settings', action: () => this.openSettings() },

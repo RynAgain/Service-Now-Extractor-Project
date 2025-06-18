@@ -16,6 +16,8 @@
 // @require      https://raw.githubusercontent.com/RynAgain/Service-Now-Extractor-Project/refs/heads/main/modules/excel.js
 // @require      https://raw.githubusercontent.com/RynAgain/Service-Now-Extractor-Project/refs/heads/main/modules/ui.js
 // @require      https://raw.githubusercontent.com/RynAgain/Service-Now-Extractor-Project/refs/heads/main/modules/events.js
+// @require      https://raw.githubusercontent.com/RynAgain/Service-Now-Extractor-Project/refs/heads/main/test-api.js
+
 
 // @updateURL    https://raw.githubusercontent.com/RynAgain/Service-Now-Extractor-Project/refs/heads/main/main.js
 // @downloadURL  https://raw.githubusercontent.com/RynAgain/Service-Now-Extractor-Project/refs/heads/main/main.js
@@ -231,13 +233,34 @@
             this.saveSettings();
         },
 
-        // Data extraction functions
-        extractCurrentPageTickets: function() {
-            if (window.SNExtractorData) {
-                window.SNExtractorData.extractCurrentPageTickets(this.selectedFields, this.extractedTickets);
+        // API connection test with detailed cookie analysis
+        testConnection: async function() {
+            if (window.SNExtractorAPI && window.SNExtractorUtils) {
+                window.SNExtractorUtils.updateStatus('🔗 Testing API connection and session cookies...');
+                const result = await window.SNExtractorAPI.testConnection();
+                
+                if (result.success) {
+                    window.SNExtractorUtils.updateStatus(`✅ ${result.message}`);
+                    console.log('API Test Success Details:', result);
+                } else {
+                    window.SNExtractorUtils.updateStatus(`❌ ${result.message}`);
+                    console.error('API Test Failure Details:', result);
+                    
+                    // Show detailed cookie information in case of failure
+                    if (result.cookies) {
+                        const missingCookies = Object.entries(result.cookies)
+                            .filter(([name, value]) => !value)
+                            .map(([name]) => name);
+                        
+                        if (missingCookies.length > 0) {
+                            window.SNExtractorUtils.updateStatus(`❌ Missing cookies: ${missingCookies.join(', ')}`);
+                        }
+                    }
+                }
             }
         },
 
+        // Data extraction functions
         extractByQuery: async function() {
             if (window.SNExtractorAPI) {
                 const maxRecords = document.getElementById('max-records')?.value || 100;
@@ -286,19 +309,27 @@
             }
         },
 
-        // Advanced extraction methods
-        extractWithEnhancedDetection: function() {
-            if (window.SNExtractorData && window.SNExtractorData.extractFromEnhancedListView) {
-                const success = window.SNExtractorData.extractFromEnhancedListView(
-                    this.selectedFields, 
-                    this.extractedTickets
-                );
+        // Get available tables from API
+        getAvailableTables: async function() {
+            if (window.SNExtractorAPI && window.SNExtractorUtils) {
+                window.SNExtractorUtils.updateStatus('🔍 Checking available tables...');
                 
-                if (!success) {
-                    // Fallback to regular extraction
-                    this.extractCurrentPageTickets();
+                const availableTables = [];
+                for (const [tableKey, tableInfo] of Object.entries(window.SNExtractorConfig.AVAILABLE_TABLES)) {
+                    try {
+                        const result = await window.SNExtractorAPI.queryTableSimple(tableKey, '', ['sys_id'], 1);
+                        if (result && result.result) {
+                            availableTables.push(tableKey);
+                        }
+                    } catch (error) {
+                        console.warn(`Table ${tableKey} not accessible:`, error.message);
+                    }
                 }
+                
+                window.SNExtractorUtils.updateStatus(`✅ Found ${availableTables.length} accessible tables`);
+                return availableTables;
             }
+            return [];
         },
 
         // Batch operations

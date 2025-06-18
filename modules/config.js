@@ -160,6 +160,15 @@
                     '8': 'Canceled'
                 }
             },
+            'active': {
+                name: 'Active',
+                description: 'Whether the record is active',
+                type: 'choice',
+                values: {
+                    'true': 'Active',
+                    'false': 'Inactive'
+                }
+            },
             'priority': {
                 name: 'Priority',
                 description: 'Business priority level',

@@ -13,31 +13,90 @@
 
     // API management object
     window.SNExtractorAPI = {
-        // Enhanced fetch with timeout
+        // Get ServiceNow session cookies for debugging
+        getSessionCookies: function() {
+            const cookies = document.cookie.split(';').reduce((acc, cookie) => {
+                const [name, value] = cookie.trim().split('=');
+                acc[name] = value;
+                return acc;
+            }, {});
+
+            const snCookies = {
+                glide_sso_id: cookies.glide_sso_id,
+                BIGipServerpool_wfmprod: cookies.BIGipServerpool_wfmprod,
+                glide_user_route: cookies.glide_user_route,
+                glide_node_id_for_js: cookies.glide_node_id_for_js,
+                JSESSIONID: cookies.JSESSIONID,
+                glide_user_activity: cookies.glide_user_activity,
+                glide_session_store: cookies.glide_session_store,
+                __CJ_g_startTime: cookies.__CJ_g_startTime
+            };
+
+            return snCookies;
+        },
+
+        // Enhanced fetch with timeout and ServiceNow cookie debugging
         fetchWithTimeout: async function(url, options, timeout = 30000) {
             const controller = new AbortController();
             const id = setTimeout(() => controller.abort(), timeout);
 
+            // Log session cookies for debugging
+            const sessionCookies = this.getSessionCookies();
+            console.log('ServiceNow Session Cookies:', sessionCookies);
+            
+            // Check for critical cookies
+            const criticalCookies = ['JSESSIONID', 'glide_sso_id', 'glide_user_route'];
+            const missingCookies = criticalCookies.filter(cookie => !sessionCookies[cookie]);
+            
+            if (missingCookies.length > 0) {
+                console.warn('Missing critical ServiceNow cookies:', missingCookies);
+            }
+
             try {
-                const response = await fetch(url, {
+                // Ensure we're sending all cookies and proper headers
+                const enhancedOptions = {
                     ...options,
-                    signal: controller.signal
+                    signal: controller.signal,
+                    credentials: 'include', // This should include all cookies
+                    headers: {
+                        ...options.headers,
+                        // Add ServiceNow-specific headers
+                        'X-UserToken': sessionCookies.glide_user_route || '',
+                        'X-Transaction-Source': 'Tampermonkey Script'
+                    }
+                };
+
+                console.log('API Request:', {
+                    url: url,
+                    method: enhancedOptions.method,
+                    headers: enhancedOptions.headers,
+                    credentials: enhancedOptions.credentials
                 });
+
+                const response = await fetch(url, enhancedOptions);
                 clearTimeout(id);
+                
+                // Log response details
+                console.log('API Response:', {
+                    status: response.status,
+                    statusText: response.statusText,
+                    headers: Object.fromEntries(response.headers.entries())
+                });
+
                 return response;
             } catch (error) {
                 clearTimeout(id);
                 if (error.name === 'AbortError') {
-                    throw new Error('Request timeout - try reducing max records or using "Extract Current Page"');
+                    throw new Error('Request timeout - try reducing max records');
                 }
                 throw error;
             }
         },
 
-        // Query ServiceNow table with multiple fallback methods
+        // Enhanced ServiceNow API query with better error handling and authentication
         queryTableSimple: async function(tableName, query, fields, limit) {
             const attempts = [
-                // Attempt 1: Basic REST API
+                // Attempt 1: Modern REST API with proper authentication
                 async () => {
                     let url = `${window.SNExtractorConfig.BASE_URL}/api/now/table/${tableName}`;
                     const params = new URLSearchParams();
@@ -46,40 +105,52 @@
                         params.append('sysparm_fields', fields.join(','));
                     }
                     if (limit) {
-                        params.append('sysparm_limit', Math.min(limit, 500).toString()); // Limit to 500 max
+                        params.append('sysparm_limit', Math.min(limit, 1000).toString()); // Increased limit
                     }
                     if (query) {
                         params.append('sysparm_query', query);
                     }
+                    
+                    // Add display values for better data quality
+                    params.append('sysparm_display_value', 'all');
+                    params.append('sysparm_exclude_reference_link', 'true');
 
                     if (params.toString()) {
                         url += '?' + params.toString();
                     }
+
+                    console.log(`REST API Request: ${url}`);
 
                     const response = await this.fetchWithTimeout(url, {
                         method: 'GET',
                         headers: {
                             'Accept': 'application/json',
                             'Content-Type': 'application/json',
-                            'X-Requested-With': 'XMLHttpRequest'
+                            'X-Requested-With': 'XMLHttpRequest',
+                            'Cache-Control': 'no-cache',
+                            'X-WantSessionNotificationMessages': 'true'
                         },
                         credentials: 'include'
-                    }, 30000);
+                    }, 45000); // Increased timeout
 
                     if (!response.ok) {
-                        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                        const errorText = await response.text();
+                        console.error(`REST API Error: ${response.status} - ${errorText}`);
+                        throw new Error(`REST API ${response.status}: ${response.statusText} - ${errorText.substring(0, 100)}`);
                     }
 
-                    return await response.json();
+                    const data = await response.json();
+                    console.log(`REST API Success: ${data.result?.length || 0} records from ${tableName}`);
+                    return data;
                 },
 
-                // Attempt 2: JSON API endpoint
+                // Attempt 2: Legacy JSON API endpoint
                 async () => {
                     let url = `${window.SNExtractorConfig.BASE_URL}/${tableName}.do`;
                     const params = new URLSearchParams({
                         JSONv2: '',
                         sysparm_action: 'getRecords',
-                        sysparm_max_records: Math.min(limit || 100, 500).toString()
+                        sysparm_max_records: Math.min(limit || 100, 1000).toString()
                     });
 
                     if (fields && fields.length > 0) {
@@ -90,22 +161,68 @@
                     }
 
                     url += '?' + params.toString();
+                    console.log(`Legacy API Request: ${url}`);
 
                     const response = await this.fetchWithTimeout(url, {
                         method: 'GET',
                         headers: {
                             'Accept': 'application/json',
-                            'X-Requested-With': 'XMLHttpRequest'
+                            'X-Requested-With': 'XMLHttpRequest',
+                            'Cache-Control': 'no-cache',
+                            'X-WantSessionNotificationMessages': 'true'
                         },
                         credentials: 'include'
-                    }, 30000);
+                    }, 45000);
 
                     if (!response.ok) {
-                        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                        const errorText = await response.text();
+                        console.error(`Legacy API Error: ${response.status} - ${errorText}`);
+                        throw new Error(`Legacy API ${response.status}: ${response.statusText}`);
                     }
 
                     const data = await response.json();
+                    console.log(`Legacy API Success: ${data.records?.length || 0} records from ${tableName}`);
                     return { result: data.records || [] };
+                },
+
+                // Attempt 3: Table API with different parameters
+                async () => {
+                    let url = `${window.SNExtractorConfig.BASE_URL}/api/now/v1/table/${tableName}`;
+                    const params = new URLSearchParams();
+
+                    if (fields && fields.length > 0) {
+                        params.append('sysparm_fields', fields.join(','));
+                    }
+                    if (limit) {
+                        params.append('sysparm_limit', Math.min(limit, 1000).toString());
+                    }
+                    if (query) {
+                        params.append('sysparm_query', query);
+                    }
+
+                    if (params.toString()) {
+                        url += '?' + params.toString();
+                    }
+
+                    console.log(`V1 API Request: ${url}`);
+
+                    const response = await this.fetchWithTimeout(url, {
+                        method: 'GET',
+                        headers: {
+                            'Accept': 'application/json',
+                            'X-Requested-With': 'XMLHttpRequest',
+                            'X-WantSessionNotificationMessages': 'true'
+                        },
+                        credentials: 'include'
+                    }, 45000);
+
+                    if (!response.ok) {
+                        throw new Error(`V1 API ${response.status}: ${response.statusText}`);
+                    }
+
+                    const data = await response.json();
+                    console.log(`V1 API Success: ${data.result?.length || 0} records from ${tableName}`);
+                    return data;
                 }
             ];
 
@@ -113,41 +230,154 @@
             for (let i = 0; i < attempts.length; i++) {
                 try {
                     if (window.SNExtractorUtils && window.SNExtractorUtils.updateStatus) {
-                        window.SNExtractorUtils.updateStatus(`🔍 Querying ${tableName} (attempt ${i + 1})...`);
+                        window.SNExtractorUtils.updateStatus(`🔍 Querying ${tableName} (method ${i + 1}/3)...`);
                     }
                     const result = await attempts[i]();
+                    
+                    // Validate result structure
+                    if (!result || (!result.result && !result.records)) {
+                        throw new Error('Invalid response structure - no result data');
+                    }
+                    
                     return result;
                 } catch (error) {
                     lastError = error;
-                    console.warn(`Attempt ${i + 1} failed for ${tableName}:`, error);
+                    console.warn(`API Method ${i + 1} failed for ${tableName}:`, error.message);
                     if (i < attempts.length - 1) {
-                        await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1 second between attempts
+                        await new Promise(resolve => setTimeout(resolve, 2000)); // Wait 2 seconds between attempts
                     }
                 }
             }
 
-            throw new Error(`All API attempts failed: ${lastError.message}`);
+            throw new Error(`All API methods failed for ${tableName}: ${lastError.message}`);
         },
 
-        // Build query string from filters
+        // Enhanced query string builder with proper ServiceNow syntax
         buildQueryString: function(filters) {
+            if (!filters || filters.length === 0) {
+                return '';
+            }
+
             return filters
                 .filter(f => f.field && f.value)
                 .map(f => {
                     let query = f.field;
+                    const value = f.value.toString();
+                    
                     switch(f.operator) {
                         case 'CONTAINS':
-                            query += 'LIKE' + f.value;
+                            query += 'LIKE' + value;
                             break;
                         case 'STARTSWITH':
-                            query += 'STARTSWITH' + f.value;
+                            query += 'STARTSWITH' + value;
+                            break;
+                        case 'ENDSWITH':
+                            query += 'ENDSWITH' + value;
+                            break;
+                        case 'IN':
+                            query += 'IN' + value;
+                            break;
+                        case 'NOT IN':
+                            query += 'NOT IN' + value;
+                            break;
+                        case 'ISEMPTY':
+                            query += 'ISEMPTY';
+                            break;
+                        case 'ISNOTEMPTY':
+                            query += 'ISNOTEMPTY';
                             break;
                         default:
-                            query += f.operator + f.value;
+                            query += f.operator + value;
                     }
                     return query;
                 })
                 .join('^');
+        },
+
+        // Test API connectivity with detailed cookie analysis
+        testConnection: async function() {
+            try {
+                // First, check session cookies
+                const sessionCookies = this.getSessionCookies();
+                console.log('Session Analysis:', sessionCookies);
+                
+                const criticalCookies = ['JSESSIONID', 'glide_sso_id'];
+                const missingCritical = criticalCookies.filter(cookie => !sessionCookies[cookie]);
+                
+                if (missingCritical.length > 0) {
+                    return {
+                        success: false,
+                        message: `Missing critical cookies: ${missingCritical.join(', ')}. Please ensure you're logged into ServiceNow.`
+                    };
+                }
+
+                const response = await this.fetchWithTimeout(
+                    `${window.SNExtractorConfig.BASE_URL}/api/now/table/sys_user?sysparm_limit=1`,
+                    {
+                        method: 'GET',
+                        headers: {
+                            'Accept': 'application/json',
+                            'X-Requested-With': 'XMLHttpRequest',
+                            'X-WantSessionNotificationMessages': 'true'
+                        },
+                        credentials: 'include'
+                    },
+                    10000
+                );
+
+                if (response.ok) {
+                    const data = await response.json();
+                    return {
+                        success: true,
+                        message: `API connection successful. Session cookies: ${Object.keys(sessionCookies).filter(k => sessionCookies[k]).length}/8`,
+                        userCount: data.result?.length || 0,
+                        cookies: sessionCookies
+                    };
+                } else {
+                    const errorText = await response.text();
+                    return {
+                        success: false,
+                        message: `API test failed: ${response.status} ${response.statusText}`,
+                        details: errorText.substring(0, 200),
+                        cookies: sessionCookies
+                    };
+                }
+            } catch (error) {
+                return {
+                    success: false,
+                    message: `API test error: ${error.message}`,
+                    cookies: this.getSessionCookies()
+                };
+            }
+        },
+
+        // Get table schema information
+        getTableSchema: async function(tableName) {
+            try {
+                const response = await this.fetchWithTimeout(
+                    `${window.SNExtractorConfig.BASE_URL}/api/now/table/sys_dictionary?sysparm_query=name=${tableName}&sysparm_fields=element,column_label,internal_type`,
+                    {
+                        method: 'GET',
+                        headers: {
+                            'Accept': 'application/json',
+                            'X-Requested-With': 'XMLHttpRequest'
+                        },
+                        credentials: 'include'
+                    },
+                    15000
+                );
+
+                if (response.ok) {
+                    const data = await response.json();
+                    return data.result || [];
+                } else {
+                    console.warn(`Could not get schema for ${tableName}: ${response.status}`);
+                    return [];
+                }
+            } catch (error) {
+                console.warn(`Schema lookup failed for ${tableName}:`, error);
+                return [];
+            }
         },
 
         // Extract tickets using API with better error handling
@@ -203,7 +433,7 @@
                     }
                 } else {
                     if (window.SNExtractorUtils && window.SNExtractorUtils.updateStatus) {
-                        window.SNExtractorUtils.updateStatus(`⚠️ No tickets extracted via API. Try "Extract Current Page" if you're viewing a list.`);
+                        window.SNExtractorUtils.updateStatus(`⚠️ No tickets extracted via API. Check your filters or table permissions.`);
                     }
                 }
 

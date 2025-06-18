@@ -161,20 +161,33 @@
                             <div style="background: ${colors.light}; padding: 10px; border-radius: 4px; margin-bottom: 10px;">
                                 <div style="font-size: 11px; color: #666;">
                                     <strong>User:</strong> ${userInfo.username}<br>
-                                    <strong>URL:</strong> ${window.location.hostname}<br>
-                                    <strong>Page:</strong> ${currentPageType}
+                                    <strong>Instance:</strong> ${window.location.hostname}<br>
+                                    <strong>Mode:</strong> API-Only Extraction
                                 </div>
                             </div>
 
-                            <label style="font-size: 12px; color: #666;">Max Records (API only):</label>
-                            <input type="number" id="max-records" value="100" min="1" max="500"
+                            <label style="font-size: 12px; color: #666;">Max Records per Table:</label>
+                            <input type="number" id="max-records" value="100" min="1" max="1000"
                                    style="width: 100%; padding: 6px; margin-top: 4px; font-size: 12px; border: 1px solid #ddd; border-radius: 4px;">
                             <div style="font-size: 10px; color: #666; margin-top: 2px;">
-                                Max 500 records to avoid timeouts
+                                Recommended: 100-500 records. Max 1000 per table.
                             </div>
                         </div>
 
-                        <button id="extract-current" style="
+                        <button id="test-connection" style="
+                            width: 100%;
+                            padding: 8px;
+                            margin: 8px 0;
+                            background: ${colors.accent};
+                            color: white;
+                            border: none;
+                            border-radius: 4px;
+                            cursor: pointer;
+                            font-size: 12px;
+                            font-weight: 500;
+                        ">🔗 Test API Connection</button>
+
+                        <button id="extract-query" style="
                             width: 100%;
                             padding: 12px;
                             margin: 8px 0;
@@ -185,27 +198,27 @@
                             cursor: pointer;
                             font-size: 13px;
                             font-weight: 500;
-                        ">📋 Extract Current Page</button>
+                        ">🔍 Extract via API</button>
 
                         <div style="font-size: 10px; color: #666; margin: 4px 0 12px 0; text-align: center;">
-                            Best for: Currently visible list or form (Recommended)
+                            Uses ServiceNow REST API with your selected filters and tables
                         </div>
 
-                        <button id="extract-query" style="
+                        <button id="get-available-tables" style="
                             width: 100%;
-                            padding: 12px;
+                            padding: 8px;
                             margin: 8px 0;
                             background: ${colors.secondary};
                             color: white;
                             border: none;
                             border-radius: 4px;
                             cursor: pointer;
-                            font-size: 13px;
+                            font-size: 12px;
                             font-weight: 500;
-                        ">🔍 Extract by API Query</button>
+                        ">📋 Check Available Tables</button>
 
                         <div style="font-size: 10px; color: #666; margin: 4px 0 12px 0; text-align: center;">
-                            Uses REST API with your filters (slower, may timeout)
+                            Verify which tables you have access to
                         </div>
 
                         <button id="export-excel" style="

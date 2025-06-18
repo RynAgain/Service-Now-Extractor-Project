@@ -1,6 +1,6 @@
-# ServiceNow Ticket Data Extractor - Modular Version
+# ServiceNow Ticket Data Extractor - Modular Version (API-Focused)
 
-A modularized Tampermonkey script for extracting ServiceNow ticket data to Excel format. This version breaks down the original monolithic script into logical, maintainable modules.
+A modularized Tampermonkey script for extracting ServiceNow ticket data via REST API to Excel format. This version focuses on robust API-based extraction with enhanced error handling and removes current page extraction functionality.
 
 ## 📁 Project Structure
 
@@ -183,11 +183,12 @@ Service-Now-Extractor-Project/
 ## 📊 Features
 
 ### Data Extraction
-- ✅ Current page extraction (list and form views)
-- ✅ API-based extraction with filters
-- ✅ Multiple table support
-- ✅ Duplicate detection and removal
-- ✅ Enhanced field detection
+- ✅ **API-only extraction** with multiple fallback methods
+- ✅ **Enhanced ServiceNow REST API** integration
+- ✅ **Multiple table support** with batch processing
+- ✅ **Advanced filtering** with ServiceNow query syntax
+- ✅ **Connection testing** and table accessibility verification
+- ✅ **Duplicate detection** and data validation
 
 ### User Interface
 - ✅ Draggable, resizable interface
@@ -203,10 +204,12 @@ Service-Now-Extractor-Project/
 - ✅ Custom field selection
 
 ### Advanced Features
-- ✅ Batch extraction
-- ✅ Data validation
-- ✅ Performance monitoring
-- ✅ Error recovery
+- ✅ **API connection testing** and diagnostics
+- ✅ **Table accessibility checking**
+- ✅ **Batch extraction** across multiple tables
+- ✅ **Enhanced error handling** with multiple API fallbacks
+- ✅ **Performance monitoring** and logging
+- ✅ **Data validation** and cleanup
 
 ## 🤝 Contributing
 
@@ -219,8 +222,16 @@ When making changes:
 
 ## 📝 Version History
 
+- **v4.1**: API-focused version with enhanced ServiceNow integration
 - **v4.0**: Modular architecture implementation
 - **v3.3**: Original monolithic version (see MainScript.js)
+
+## 🧪 Testing Your Setup
+
+1. **Install the test script** [`test-api.js`](test-api.js) first to verify API access
+2. **Check console output** for API connectivity results
+3. **Verify table permissions** using the "Check Available Tables" feature
+4. **Start with small record limits** (10-50) for initial testing
 
 ## ⚠️ Notes
 
