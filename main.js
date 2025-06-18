@@ -3,19 +3,22 @@
 // @namespace    http://tampermonkey.net/
 // @version      4.0
 // @description  Extract ServiceNow ticket metadata to Excel - Modular Version
-// @author       You
+// @author       Ryan Satterfield
 // @match        https://wfmprod.service-now.com/*
 // @grant        GM_setValue
 // @grant        GM_getValue
 // @require      https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js
-// @require      file://C:/Source/Service-Now-Extractor-Project/modules/config.js
-// @require      file://C:/Source/Service-Now-Extractor-Project/modules/storage.js
-// @require      file://C:/Source/Service-Now-Extractor-Project/modules/utils.js
-// @require      file://C:/Source/Service-Now-Extractor-Project/modules/api.js
-// @require      file://C:/Source/Service-Now-Extractor-Project/modules/extractor.js
-// @require      file://C:/Source/Service-Now-Extractor-Project/modules/excel.js
-// @require      file://C:/Source/Service-Now-Extractor-Project/modules/ui.js
-// @require      file://C:/Source/Service-Now-Extractor-Project/modules/events.js
+// @require      https://raw.githubusercontent.com/RynAgain/Service-Now-Extractor-Project/refs/heads/main/modules/config.js
+// @require      https://raw.githubusercontent.com/RynAgain/Service-Now-Extractor-Project/refs/heads/main/modules/storage.js
+// @require      https://raw.githubusercontent.com/RynAgain/Service-Now-Extractor-Project/refs/heads/main/modules/utils.js
+// @require      https://raw.githubusercontent.com/RynAgain/Service-Now-Extractor-Project/refs/heads/main/modules/api.js
+// @require      https://raw.githubusercontent.com/RynAgain/Service-Now-Extractor-Project/refs/heads/main/modules/extractor.js
+// @require      https://raw.githubusercontent.com/RynAgain/Service-Now-Extractor-Project/refs/heads/main/modules/excel.js
+// @require      https://raw.githubusercontent.com/RynAgain/Service-Now-Extractor-Project/refs/heads/main/modules/ui.js
+// @require      https://raw.githubusercontent.com/RynAgain/Service-Now-Extractor-Project/refs/heads/main/modules/events.js
+
+// @updateURL    https://raw.githubusercontent.com/RynAgain/Service-Now-Extractor-Project/refs/heads/main/main.js
+// @downloadURL  https://raw.githubusercontent.com/RynAgain/Service-Now-Extractor-Project/refs/heads/main/main.js
 // ==/UserScript==
 
 (function() {
