@@ -6,7 +6,7 @@
 (function () {
     'use strict';
 
-    const CURRENT_VERSION = '6.0.0';
+    const CURRENT_VERSION = '6.0.1';
 
     // ── Shared Namespace ───────────────────────────────────────
     window.SNExtractor = window.SNExtractor || {};
