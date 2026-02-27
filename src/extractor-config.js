@@ -6,7 +6,7 @@
 (function () {
     'use strict';
 
-    const CURRENT_VERSION = '6.0.3';
+    const CURRENT_VERSION = '6.0.5';
 
     // ── Shared Namespace ───────────────────────────────────────
     window.SNExtractor = window.SNExtractor || {};
@@ -44,6 +44,7 @@
         isProcessing: false,
         processingAborted: false,
         currentAccent: 'blue',
+        currentMode: 'dark',   // 'dark' or 'light'
         debugMode: false
     };
 
@@ -60,6 +61,7 @@
         DEBUG:      'tm_ext_debug',
         SCTASK:     'tm_ext_sctask',
         ACCENT:     'tm_accent_theme',
+        MODE:       'tm_ext_mode',
         VCHECK:     'tm_ext_vcheck',
         VSKIP:      'tm_ext_vskip'
     };
@@ -109,8 +111,9 @@
         ],
 
         ACCENTS: {
-            blue: { primary: '#3ea6ff', hover: '#65b8ff' },
-            red:  { primary: '#ff0000', hover: '#ff3333' }
+            blue:  { primary: '#3ea6ff', hover: '#65b8ff' },
+            red:   { primary: '#ff0000', hover: '#ff3333' },
+            green: { primary: '#00674a', hover: '#008c64' }
         }
     };
 

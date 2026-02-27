@@ -18,24 +18,36 @@
         if (el) el.remove();
 
         const accent = ns.CONFIG.ACCENTS[ns.state.currentAccent] || ns.CONFIG.ACCENTS.blue;
+        const isLight = ns.state.currentMode === 'light';
+
+        // Mode-dependent color values
+        const bg = isLight
+            ? { primary: '#ffffff', secondary: '#f5f5f5', tertiary: '#e8e8e8', elevated: '#f0f0f0' }
+            : { primary: '#0f0f0f', secondary: '#1a1a1a', tertiary: '#242424', elevated: '#2d2d2d' };
+        const text = isLight
+            ? { primary: '#1a1a1a', secondary: '#555555', disabled: '#999999' }
+            : { primary: '#f1f1f1', secondary: '#aaaaaa', disabled: '#717171' };
+        const border = isLight
+            ? { subtle: '#e0e0e0', def: '#cccccc', strong: '#aaaaaa' }
+            : { subtle: '#303030', def: '#3f3f3f', strong: '#525252' };
 
         const style = document.createElement('style');
         style.id = 'tm-ext-css';
         style.textContent = `
 /* ── CSS Custom Properties ─────────────────────────────── */
 #tm-ext-root {
-    --tm-bg-primary:    #0f0f0f;
-    --tm-bg-secondary:  #1a1a1a;
-    --tm-bg-tertiary:   #242424;
-    --tm-bg-elevated:   #2d2d2d;
+    --tm-bg-primary:    ${bg.primary};
+    --tm-bg-secondary:  ${bg.secondary};
+    --tm-bg-tertiary:   ${bg.tertiary};
+    --tm-bg-elevated:   ${bg.elevated};
 
-    --tm-text-primary:  #f1f1f1;
-    --tm-text-secondary:#aaaaaa;
-    --tm-text-disabled: #717171;
+    --tm-text-primary:  ${text.primary};
+    --tm-text-secondary:${text.secondary};
+    --tm-text-disabled: ${text.disabled};
 
-    --tm-border-subtle: #303030;
-    --tm-border-default:#3f3f3f;
-    --tm-border-strong: #525252;
+    --tm-border-subtle: ${border.subtle};
+    --tm-border-default:${border.def};
+    --tm-border-strong: ${border.strong};
 
     --tm-accent-primary:${accent.primary};
     --tm-accent-hover:  ${accent.hover};
@@ -376,9 +388,9 @@
 /* ── Toast Notifications ───────────────────────────────── */
 /* CR-10: Use CSS custom properties with fallbacks for elements outside #tm-ext-root */
 .tm-toast-wrap {
-    --tm-bg-elevated: #2d2d2d;
-    --tm-border-subtle: #303030;
-    --tm-text-primary: #f1f1f1;
+    --tm-bg-elevated: ${bg.elevated};
+    --tm-border-subtle: ${border.subtle};
+    --tm-text-primary: ${text.primary};
     --tm-accent-primary: ${accent.primary};
     --tm-accent-success: #2e7d32;
     --tm-accent-warning: #f9a825;
@@ -437,11 +449,11 @@
 /* ── Update Modal ──────────────────────────────────────── */
 /* CR-10: Duplicate CSS vars for elements outside #tm-ext-root */
 .tm-modal-bg {
-    --tm-bg-primary: #0f0f0f;
-    --tm-bg-secondary: #1a1a1a;
-    --tm-border-subtle: #303030;
-    --tm-text-primary: #f1f1f1;
-    --tm-text-secondary: #aaa;
+    --tm-bg-primary: ${bg.primary};
+    --tm-bg-secondary: ${bg.secondary};
+    --tm-border-subtle: ${border.subtle};
+    --tm-text-primary: ${text.primary};
+    --tm-text-secondary: ${text.secondary};
     position: fixed;
     inset: 0;
     background: rgba(0, 0, 0, 0.6);

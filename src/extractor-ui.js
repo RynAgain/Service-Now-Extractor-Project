@@ -165,11 +165,13 @@
             table:      GM_getValue(SK.TABLE, 'sc_task'),
             debug:      GM_getValue(SK.DEBUG, false),
             sctask:     GM_getValue(SK.SCTASK, true),
-            accent:     GM_getValue(SK.ACCENT, 'blue')
+            accent:     GM_getValue(SK.ACCENT, 'blue'),
+            mode:       GM_getValue(SK.MODE, 'dark')
         };
 
         state.debugMode = settings.debug;
         state.currentAccent = settings.accent;
+        state.currentMode = settings.mode;
         state.isCollapsed = settings.collapsed;
         CONFIG.TABLE_NAME = settings.table;
 
@@ -213,6 +215,7 @@
             }
 
             GM_setValue(SK.ACCENT, state.currentAccent);
+            GM_setValue(SK.MODE, state.currentMode);
 
             el = document.getElementById('tm-sw-debug');
             if (el) {
@@ -401,6 +404,16 @@
                     '<select id="tm-accent" class="tm-sel">' +
                         '<option value="blue"' + (settings.accent === 'blue' ? ' selected' : '') + '>Blue</option>' +
                         '<option value="red"' + (settings.accent === 'red' ? ' selected' : '') + '>Red</option>' +
+                        '<option value="green"' + (settings.accent === 'green' ? ' selected' : '') + '>Green (WFM)</option>' +
+                    '</select>' +
+                '</div>' +
+
+                // Mode toggle (dark/light)
+                '<div class="tm-sec">' +
+                    '<label class="tm-lbl">Mode</label>' +
+                    '<select id="tm-mode" class="tm-sel">' +
+                        '<option value="dark"' + (settings.mode === 'dark' ? ' selected' : '') + '>Dark</option>' +
+                        '<option value="light"' + (settings.mode === 'light' ? ' selected' : '') + '>Light</option>' +
                     '</select>' +
                 '</div>' +
 
@@ -522,6 +535,11 @@
                                 ICONS.grid + ' Excel <span class="tm-badge" id="tm-count-badge">0</span></button>'
                             : ''
                         ) +
+                        (FEATURE_FLAGS.EXPORT_CSV
+                            ? '<button class="tm-btn tm-btn-s" id="tm-tool-export-csv" disabled title="Export as CSV">' +
+                                ICONS.download + ' CSV</button>'
+                            : ''
+                        ) +
                         (FEATURE_FLAGS.COPY_JSON
                             ? '<button class="tm-btn tm-btn-s" id="tm-tool-copy-json" disabled title="Copy as JSON">' +
                                 ICONS.clipboard + '</button>'
@@ -533,6 +551,11 @@
                             : ''
                         ) +
                     '</div>' +
+                    (FEATURE_FLAGS.STREAM_EXPORT
+                        ? '<button class="tm-btn tm-btn-s tm-btn-f" id="tm-tool-stream-export" title="Fetch and export directly to Excel without holding in memory">' +
+                            ICONS.download + ' Stream Export to Excel</button>'
+                        : ''
+                    ) +
                 '</div>' +
 
                 // Status bar
@@ -601,6 +624,8 @@
         addClick('tm-tool-extract-query', ns.extractByQuery);
         addClick('tm-tool-process-sctask', ns.processSCTASKVariables);
         addClick('tm-tool-export-excel', ns.exportToExcel);
+        addClick('tm-tool-export-csv', ns.exportToCSV);
+        addClick('tm-tool-stream-export', ns.streamExportToExcel);
         // CR-07: Snapshot the array to avoid race with clearData during async clipboard write
         addClick('tm-tool-copy-json', function () {
             ns.copyToClipboard([].concat(state.extractedTickets), 'json');
@@ -613,7 +638,17 @@
         if (accentEl) {
             accentEl.addEventListener('change', function (e) {
                 state.currentAccent = e.target.value;
-                ns.injectStyles(); // Re-inject CSS with new accent
+                ns.injectStyles();
+                ns.saveSettings();
+            });
+        }
+
+        // Mode change (dark/light)
+        var modeEl = document.getElementById('tm-mode');
+        if (modeEl) {
+            modeEl.addEventListener('change', function (e) {
+                state.currentMode = e.target.value;
+                ns.injectStyles();
                 ns.saveSettings();
             });
         }
@@ -648,7 +683,7 @@
         });
 
         // Immediate save on selects and number input
-        ['tm-max', 'tm-table', 'tm-accent'].forEach(function (id) {
+        ['tm-max', 'tm-table', 'tm-accent', 'tm-mode'].forEach(function (id) {
             var el = document.getElementById(id);
             if (el) el.addEventListener('change', ns.saveSettings);
         });

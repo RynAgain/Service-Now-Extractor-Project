@@ -26,8 +26,12 @@
 
             const wb = XLSX.utils.book_new();
 
-            // Flatten all values to strings for Excel
-            const cleaned = state.extractedTickets.map(function (ticket) {
+            // Standardize column order if available, then flatten to strings
+            const standardized = typeof ns.standardizeTicketKeys === 'function'
+                ? ns.standardizeTicketKeys(state.extractedTickets)
+                : state.extractedTickets;
+
+            const cleaned = standardized.map(function (ticket) {
                 const row = {};
                 Object.keys(ticket).forEach(function (key) {
                     const value = ticket[key];
@@ -124,10 +128,15 @@
         ns.updateStatus('Generating CSV file...');
 
         try {
-            // Collect all unique column headers
+            // Standardize column order if available
+            const standardized = typeof ns.standardizeTicketKeys === 'function'
+                ? ns.standardizeTicketKeys(state.extractedTickets)
+                : state.extractedTickets;
+
+            // Collect all unique column headers (in standardized order)
             const allCols = [];
             const colSet = new Set();
-            state.extractedTickets.forEach(function (ticket) {
+            standardized.forEach(function (ticket) {
                 Object.keys(ticket).forEach(function (key) {
                     if (!colSet.has(key)) { colSet.add(key); allCols.push(key); }
                 });
@@ -323,10 +332,12 @@
     ns.updateExportBtns = function () {
         const count = state.extractedTickets.length;
         const excelBtn = document.getElementById('tm-tool-export-excel');
+        const csvBtn = document.getElementById('tm-tool-export-csv');
         const jsonBtn = document.getElementById('tm-tool-copy-json');
         const badge = document.getElementById('tm-count-badge');
 
         if (excelBtn) excelBtn.disabled = count === 0;
+        if (csvBtn) csvBtn.disabled = count === 0;
         if (jsonBtn) jsonBtn.disabled = count === 0;
         if (badge) badge.textContent = String(count);
     };

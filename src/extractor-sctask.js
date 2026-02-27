@@ -204,8 +204,121 @@
         }
     }
 
+    // ── Variable Column Standardization ─────────────────────────
+    // Maintains a persistent ordered list of all variable column names
+    // seen across extractions. When exporting, columns appear in this
+    // stable order regardless of which ticket introduced them first.
+    const VAR_ORDER_KEY = 'tm_ext_var_order';
+
+    ns.getVarColumnOrder = function () {
+        return GM_getValue(VAR_ORDER_KEY, []);
+    };
+
+    // Register new variable columns and persist the canonical order
+    ns.registerVarColumns = function (varKeys) {
+        if (!varKeys || varKeys.length === 0) return;
+
+        let order = ns.getVarColumnOrder();
+        const existing = new Set(order);
+        let added = 0;
+
+        varKeys.forEach(function (key) {
+            if (!existing.has(key)) {
+                order.push(key);
+                existing.add(key);
+                added++;
+            }
+        });
+
+        if (added > 0) {
+            GM_setValue(VAR_ORDER_KEY, order);
+            Logger.debug('Registered ' + added + ' new variable columns (total: ' + order.length + ')');
+        }
+    };
+
+    // Sort ticket keys so standard fields come first (in CONFIG.FIELDS order),
+    // then variable fields in the persisted canonical order.
+    ns.standardizeTicketKeys = function (tickets) {
+        if (!tickets || tickets.length === 0) return tickets;
+
+        const stdFields = ns.CONFIG.FIELDS;
+        const varOrder = ns.getVarColumnOrder();
+
+        // Collect all keys across all tickets
+        const allKeysSet = new Set();
+        tickets.forEach(function (t) {
+            Object.keys(t).forEach(function (k) { allKeysSet.add(k); });
+        });
+
+        // Partition into standard fields, _dv fields, and variable fields
+        const orderedKeys = [];
+        const seen = new Set();
+
+        // 1. Standard fields in CONFIG.FIELDS order
+        stdFields.forEach(function (f) {
+            if (allKeysSet.has(f) && !seen.has(f)) {
+                orderedKeys.push(f);
+                seen.add(f);
+                // Include _dv companion if exists
+                const dv = f + '_dv';
+                if (allKeysSet.has(dv) && !seen.has(dv)) {
+                    orderedKeys.push(dv);
+                    seen.add(dv);
+                }
+            }
+        });
+
+        // 2. Variable fields in persisted canonical order
+        varOrder.forEach(function (v) {
+            if (allKeysSet.has(v) && !seen.has(v)) {
+                orderedKeys.push(v);
+                seen.add(v);
+            }
+        });
+
+        // 3. Any remaining keys not in either list (sorted alphabetically)
+        Array.from(allKeysSet).sort().forEach(function (k) {
+            if (!seen.has(k)) {
+                orderedKeys.push(k);
+                seen.add(k);
+            }
+        });
+
+        // Reorder each ticket's keys
+        return tickets.map(function (ticket) {
+            const ordered = {};
+            orderedKeys.forEach(function (key) {
+                if (key in ticket) {
+                    ordered[key] = ticket[key];
+                } else {
+                    ordered[key] = ''; // Fill missing columns with empty string
+                }
+            });
+            return ordered;
+        });
+    };
+
+    // Hook: After processing SCTASK variables, register all var_ columns
+    const _origProcessSCTASK = ns.processSCTASKVariables;
+    ns.processSCTASKVariables = async function () {
+        await _origProcessSCTASK.apply(this, arguments);
+
+        // After processing, scan for var_ columns and register them
+        const varKeys = [];
+        const seenKeys = new Set();
+        state.extractedTickets.forEach(function (t) {
+            Object.keys(t).forEach(function (k) {
+                if (k.startsWith('var_') && !seenKeys.has(k)) {
+                    varKeys.push(k);
+                    seenKeys.add(k);
+                }
+            });
+        });
+        ns.registerVarColumns(varKeys);
+    };
+
     Logger.info('SCTASK module loaded');
 
     // CR-16: Export for testing
-    try { module.exports = { processSCTASKVariables: ns.processSCTASKVariables }; } catch (e) { /* browser */ }
+    try { module.exports = { processSCTASKVariables: ns.processSCTASKVariables, getVarColumnOrder: ns.getVarColumnOrder, registerVarColumns: ns.registerVarColumns, standardizeTicketKeys: ns.standardizeTicketKeys }; } catch (e) { /* browser */ }
 })();
