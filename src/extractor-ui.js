@@ -44,24 +44,26 @@
             error: ICONS.xCircle
         };
 
-        let actionHtml = '';
-        if (action) {
-            actionHtml = '<button class="tm-toast-a">' + action.label + '</button>';
-        }
+        // CR-03: Build toast with textContent for user-facing message to prevent XSS
+        const iconSpan = document.createElement('span');
+        iconSpan.className = 'tm-toast-i';
+        iconSpan.innerHTML = iconMap[type] || iconMap.info;
+        toast.appendChild(iconSpan);
 
-        toast.innerHTML =
-            '<span class="tm-toast-i">' + (iconMap[type] || iconMap.info) + '</span>' +
-            '<span class="tm-toast-m">' + message + '</span>' +
-            actionHtml;
+        const msgSpan = document.createElement('span');
+        msgSpan.className = 'tm-toast-m';
+        msgSpan.textContent = message; // Safe: textContent, not innerHTML
+        toast.appendChild(msgSpan);
 
         if (action) {
-            const btn = toast.querySelector('.tm-toast-a');
-            if (btn) {
-                btn.addEventListener('click', function () {
-                    action.callback();
-                    toast.remove();
-                });
-            }
+            const actionBtn = document.createElement('button');
+            actionBtn.className = 'tm-toast-a';
+            actionBtn.textContent = action.label;
+            actionBtn.addEventListener('click', function () {
+                action.callback();
+                toast.remove();
+            });
+            toast.appendChild(actionBtn);
         }
 
         container.appendChild(toast);
@@ -189,7 +191,8 @@
             GM_setValue(SK.COLLAPSED, state.isCollapsed);
             GM_setValue(SK.STATES, ns.getSelectedStates());
 
-            var el;
+            // CR-14: Use let instead of var for consistency
+            let el;
 
             el = document.getElementById('tm-groups');
             if (el) GM_setValue(SK.GROUPS, el.value);
@@ -377,7 +380,7 @@
             '<div id="tm-stg" class="tm-stg" style="display:none;">' +
                 '<div class="tm-stg-title">' +
                     '<span>Settings</span>' +
-                    '<button class="tm-btn tm-btn-er" id="tm-reset-ui" style="padding:2px 8px;font-size:10px;">Reset UI</button>' +
+                    '<button class="tm-btn tm-btn-er tm-btn-xs" id="tm-reset-ui">Reset UI</button>' +
                 '</div>' +
 
                 // Table selection
@@ -533,7 +536,7 @@
                 '</div>' +
 
                 // Status bar
-                '<div id="tm-status" class="tm-status" style="margin-top:12px;">Ready to extract tickets...</div>' +
+                '<div id="tm-status" class="tm-status tm-status-top">Ready to extract tickets...</div>' +
             '</div>';
 
         container.innerHTML = headerHTML + settingsHTML + bodyHTML;
@@ -598,8 +601,9 @@
         addClick('tm-tool-extract-query', ns.extractByQuery);
         addClick('tm-tool-process-sctask', ns.processSCTASKVariables);
         addClick('tm-tool-export-excel', ns.exportToExcel);
+        // CR-07: Snapshot the array to avoid race with clearData during async clipboard write
         addClick('tm-tool-copy-json', function () {
-            ns.copyToClipboard(state.extractedTickets, 'json');
+            ns.copyToClipboard([].concat(state.extractedTickets), 'json');
         });
         addClick('tm-tool-clear-data', ns.clearData);
         addClick('tm-check-update', function () { ns.checkForUpdates(true); });
@@ -661,7 +665,12 @@
     }
 
     // ── Reset UI ───────────────────────────────────────────────
+    // CR-17: Confirm before resetting if user has extracted data
     function resetUI() {
+        if (state.extractedTickets.length > 0) {
+            var proceed = confirm('You have ' + state.extractedTickets.length + ' extracted tickets. Reset will reload the page and discard them. Continue?');
+            if (!proceed) return;
+        }
         Logger.info('Resetting UI settings to defaults');
         GM_setValue(SK.POSITION, { x: 10, y: 10 });
         GM_setValue(SK.ACCENT, 'blue');
@@ -674,5 +683,123 @@
         ns.saveSettings();
     });
 
+    // ── CR-19: Keyboard Shortcut (Ctrl+Shift+E) ───────────────
+    document.addEventListener('keydown', function (e) {
+        if (e.ctrlKey && e.shiftKey && e.key === 'E') {
+            e.preventDefault();
+            const root = document.getElementById('tm-ext-root');
+            if (!root) return;
+
+            // If collapsed, expand; if expanded, collapse
+            const body = document.getElementById('tm-body');
+            if (body) {
+                state.isCollapsed = !state.isCollapsed;
+                body.style.display = state.isCollapsed ? 'none' : 'block';
+                const btn = document.getElementById('tm-collapse-btn');
+                if (btn) btn.innerHTML = state.isCollapsed ? ICONS.chevDown : ICONS.chevUp;
+
+                if (state.isCollapsed) {
+                    state.showSettings = false;
+                    const stg = document.getElementById('tm-stg');
+                    if (stg) stg.style.display = 'none';
+                }
+                ns.saveSettings();
+            }
+        }
+    });
+
+    // ── CR-22: Query History ───────────────────────────────────
+    const QUERY_HISTORY_KEY = 'tm_ext_query_history';
+    const QUERY_HISTORY_MAX = 10;
+
+    ns.saveQueryToHistory = function (query) {
+        if (!query || !query.trim()) return;
+        let history = GM_getValue(QUERY_HISTORY_KEY, []);
+        // Remove duplicate if exists
+        history = history.filter(function (q) { return q !== query; });
+        // Add to front
+        history.unshift(query);
+        // Trim to max
+        if (history.length > QUERY_HISTORY_MAX) history = history.slice(0, QUERY_HISTORY_MAX);
+        GM_setValue(QUERY_HISTORY_KEY, history);
+        Logger.debug('Query saved to history', { count: history.length });
+    };
+
+    ns.getQueryHistory = function () {
+        return GM_getValue(QUERY_HISTORY_KEY, []);
+    };
+
+    // Hook into extractByQuery to auto-save queries
+    const _origExtractByQuery = ns.extractByQuery;
+    if (typeof _origExtractByQuery === 'function') {
+        ns.extractByQuery = async function () {
+            // Save the current query before executing
+            const queryEl = document.getElementById('tm-query');
+            if (queryEl && queryEl.value.trim()) {
+                ns.saveQueryToHistory(queryEl.value.trim());
+            } else {
+                // Build the query from UI and save that
+                const built = ns.buildQuery();
+                if (built) ns.saveQueryToHistory(built);
+            }
+            return _origExtractByQuery.apply(this, arguments);
+        };
+    }
+
+    // Add query history dropdown to settings if not already present
+    ns.renderQueryHistory = function () {
+        const history = ns.getQueryHistory();
+        if (history.length === 0) return;
+
+        let historyArea = document.getElementById('tm-query-history');
+        if (!historyArea) {
+            // Insert after the query textarea section
+            const queryEl = document.getElementById('tm-query');
+            if (!queryEl) return;
+            const querySection = queryEl.closest('.tm-sec');
+            if (!querySection) return;
+
+            historyArea = document.createElement('div');
+            historyArea.id = 'tm-query-history';
+            historyArea.className = 'tm-sec';
+            querySection.parentNode.insertBefore(historyArea, querySection.nextSibling);
+        }
+
+        historyArea.innerHTML = '';
+
+        const label = document.createElement('label');
+        label.className = 'tm-lbl';
+        label.textContent = 'Recent Queries';
+        historyArea.appendChild(label);
+
+        const select = document.createElement('select');
+        select.className = 'tm-sel';
+        select.innerHTML = '<option value="">-- Select a recent query --</option>';
+        history.forEach(function (q) {
+            const opt = document.createElement('option');
+            opt.value = q;
+            opt.textContent = q.length > 60 ? q.substring(0, 57) + '...' : q;
+            opt.title = q;
+            select.appendChild(opt);
+        });
+
+        select.addEventListener('change', function () {
+            if (select.value) {
+                const queryInput = document.getElementById('tm-query');
+                if (queryInput) queryInput.value = select.value;
+                ns.debouncedSave();
+                select.selectedIndex = 0; // Reset dropdown
+            }
+        });
+
+        historyArea.appendChild(select);
+    };
+
+    // Render query history after UI is built (called from createUI flow)
+    setTimeout(function () { ns.renderQueryHistory(); }, 200);
+
     Logger.info('UI module loaded');
+
+    // CR-16: Export for testing
+    try { module.exports = { showToast: ns.showToast, updateStatus: ns.updateStatus, createUI: ns.createUI, saveSettings: ns.saveSettings, loadSettings: ns.loadSettings, saveQueryToHistory: ns.saveQueryToHistory, getQueryHistory: ns.getQueryHistory }; } catch (e) { /* browser */ }
 })();

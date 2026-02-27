@@ -6,7 +6,7 @@
 (function () {
     'use strict';
 
-    const CURRENT_VERSION = '6.0.1';
+    const CURRENT_VERSION = '6.0.3';
 
     // ── Shared Namespace ───────────────────────────────────────
     window.SNExtractor = window.SNExtractor || {};
@@ -17,7 +17,7 @@
         'https://raw.githubusercontent.com/RynAgain/Service-Now-Extractor-Project/main/ServiceNow%20Ticket%20Data%20Extractor%20V6.0%20-%20Simplified-6.0.0.user.js';
     // NOTE: raw.githubusercontent.com serves files directly (no 302 redirect).
     // The repo must exist and files must be pushed to main branch for URLs to resolve.
-    ns.VERSION_CHECK_INTERVAL = 24 * 60 * 60 * 1000; // 24 h
+    ns.VERSION_CHECK_INTERVAL = 60 * 1000; // 1 minute
 
     // ── Feature Flags ──────────────────────────────────────────
     ns.FEATURE_FLAGS = {
@@ -70,7 +70,8 @@
         SCTASK_CONCURRENCY: 3,
         SCTASK_DELAY_MS: 50,
 
-        FIELDS: [
+        // CR-13: Wrapped in Set for dedup safety
+        FIELDS: [...new Set([
             'number', 'short_description', 'description', 'state', 'priority',
             'urgency', 'impact', 'category', 'subcategory', 'u_category',
             'u_subcategory', 'assigned_to', 'assignment_group', 'caller_id',
@@ -93,7 +94,7 @@
             'severity', 'user_input', 'delivery_plan', 'delivery_task',
             'universal_request', 'task_type', 'request_item', 'request',
             'parent', 'variables'
-        ],
+        ])],
 
         STATES: [
             { value: '1',  label: '1 - New' },
@@ -112,10 +113,21 @@
     };
 
     // ── Auth Token (cached once) ───────────────────────────────
-    ns.USER_TOKEN =
-        window.g_ck ||
-        (/g_ck\s*=\s*["']([^"']+)/.exec(document.documentElement.innerHTML) || [])[1] ||
-        null;
+    // CR-08: Avoid scanning entire DOM innerHTML. Check window.g_ck first,
+    // then fall back to a targeted script tag scan (first 10KB max).
+    ns.USER_TOKEN = (function () {
+        if (window.g_ck) return window.g_ck;
+        try {
+            var scripts = document.querySelectorAll('script:not([src])');
+            for (var i = 0; i < Math.min(scripts.length, 20); i++) {
+                var text = scripts[i].textContent;
+                if (text.length > 10000) text = text.substring(0, 10000);
+                var match = /g_ck\s*=\s*["']([^"']+)/.exec(text);
+                if (match) return match[1];
+            }
+        } catch (e) { /* ignore */ }
+        return null;
+    })();
 
     // ── Logger ─────────────────────────────────────────────────
     ns.Logger = {
@@ -250,4 +262,7 @@
     };
 
     ns.Logger.info('Config module loaded');
+
+    // CR-16: Export for testing
+    try { module.exports = { CONFIG: ns.CONFIG, FEATURE_FLAGS: ns.FEATURE_FLAGS, SK: ns.SK, ICONS: ns.ICONS, Logger: ns.Logger }; } catch (e) { /* browser */ }
 })();

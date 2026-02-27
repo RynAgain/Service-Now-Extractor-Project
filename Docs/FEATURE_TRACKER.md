@@ -4,7 +4,7 @@
 > Each item references the governing doc and maps to an implementation phase.
 
 ---
-
+dont' forget to bump version in relation to features and bug fixes
 ## Legend
 
 | Status | Meaning |
@@ -15,6 +15,14 @@
 | `[!]`  | Blocked / needs decision |
 
 ---
+## known bugs , asks, concerns,
+- [ ] green wfm accent color,
+- [ ] light mode
+- [ ] improved query extraction from URL, doens't work on all pages right now
+    - example url https://wfmprod.service-now.com/wfm?id=list&table=task&filter=assignment_group%3D807ef9f0db32481069ee1329689619b6%5Esys_created_on%3E%3Djavascript:gs.dateGenerate(%272026-01-05%27,%2700:00:00%27)&sys_id=&v=
+- [ ] varible fields can be wide ranging in names, but everytime we extract them they appear in a new order. a system to help standarize this would be awesome
+- [ ] SCTASK is our main focus with all the variables but other ticket types would be nice to have if possible.
+- [ ] UI/UX improvments
 
 ## Phase 1 -- Style Guide Compliance
 
@@ -272,9 +280,69 @@ Ref: [Multi-Tampermonkey Guide](multi-tampermonkey-guide.md)
 
 ---
 
+## Phase 8 -- Code Review Findings (v6.0.2)
+
+> Full review of all 8 files on 2026-02-27. Findings organized by severity.
+
+### Critical -- Logic Bugs
+
+- [x] **CR-01** `extractor-export.js:106` -- `throw err` inside `.catch()` callback is swallowed silently because it is inside a `.then()` chain with no outer `.catch()`. The `copyToClipboard` outer try/catch will not catch a rejected promise. Fix: chain `.catch()` on the clipboard promise instead of re-throwing.
+- [x] **CR-02** `extractor-api.js:274` -- After abort, the extract button `onclick` is reassigned to `ns.extractByQuery`, but the `extractBtn` reference may be stale if the DOM was rebuilt (e.g., SPA navigation on ServiceNow). Fix: re-query the DOM in `finally` instead of using the captured closure variable.
+- [x] **CR-03** `extractor-ui.js:52-55` -- Toast `message` is injected via `innerHTML` without sanitization. If a ServiceNow API error message contains HTML, it could cause XSS. Fix: use `textContent` for the message span, or escape HTML entities before insertion.
+
+### High -- Robustness
+
+- [x] **CR-04** `extractor-api.js:147` -- `parseInt(maxEl.value, 10) || 100` treats `0` (unlimited) as falsy, defaulting to 100. Users who enter 0 will get 100 instead of unlimited. Fix: use explicit null check: `const raw = parseInt(maxEl.value, 10); const maxVal = (isNaN(raw) ? 100 : raw);`
+- [x] **CR-05** `extractor-sctask.js:13` -- Destructures `snFetch` at module load time, but `snFetch` is defined on `ns` by the API module. If modules load out of order (race condition), `snFetch` will be `undefined`. Fix: reference `ns.snFetch` at call time instead of destructuring at top.
+- [x] **CR-06** `extractor-update.js:12` -- Same issue: destructures `ICONS` at load time. If config module is slow, `ICONS` could be undefined. Less risky since config loads first, but inconsistent with other modules that reference `ns.ICONS`. Fix: use `ns.ICONS` inline.
+- [x] **CR-07** `extractor-ui.js:601` -- `ns.copyToClipboard(state.extractedTickets, 'json')` passes a live reference to the array. If the user clears data while the async clipboard write is in flight, they get an empty export. Fix: snapshot the array: `ns.copyToClipboard([...state.extractedTickets], 'json')`.
+- [x] **CR-08** `extractor-config.js:117` -- Token extraction regex scans `document.documentElement.innerHTML` which serializes the entire DOM to a string on every page load. On large pages this can be expensive (100ms+). Fix: limit to `document.querySelector('script')` or first 10KB.
+
+### Medium -- Style Guide Compliance Gaps
+
+- [x] **CR-09** `extractor-styles.js:186` -- `.tm-btn-s:hover` uses hardcoded `rgba(62, 166, 255, 0.1)` which won't adapt to the red accent. Fix: use `color-mix()` or define a `--tm-accent-alpha` variable.
+- [x] **CR-10** `extractor-styles.js:392-458` -- Toast and modal CSS uses hardcoded color values (`#2d2d2d`, `#303030`, `#3ea6ff`) instead of `var(--tm-*)` tokens. These elements are outside `#tm-ext-root` so CSS vars don't cascade. Fix: either scope toasts inside `#tm-ext-root`, or duplicate the vars on `.tm-toast-wrap` and `.tm-modal-bg`.
+- [x] **CR-11** `extractor-ui.js:380` -- Reset UI button has inline `style="padding:2px 8px;font-size:10px;"`. Per style guide, all styles should be in the CSS module. Fix: add a `.tm-btn-xs` class.
+- [x] **CR-12** `extractor-ui.js:536` -- Status bar has inline `style="margin-top:12px;"`. Fix: add margin to `.tm-status` in CSS or use a utility class.
+
+### Low -- Code Quality
+
+- [x] **CR-13** `extractor-config.js:73-96` -- FIELDS array is no longer deduplicated with `new Set()` (was in v5.0.4). Not currently a problem since there are no duplicates, but the safety net was removed. Fix: wrap in `[...new Set([...])]` again, or add a comment confirming no dupes.
+- [x] **CR-14** `extractor-ui.js:192` -- Uses `var el;` (ES5 style) in `saveSettings` while the rest of the codebase uses `const/let`. Inconsistent. Fix: use `let el;`.
+- [x] **CR-15** `extractor-update.js:166` -- `setInterval` with `VERSION_CHECK_INTERVAL` (24h) will drift and stack if the tab stays open for weeks. Fix: use `setTimeout` with recursive scheduling, or check timestamp in the callback before re-scheduling.
+- [ ] **CR-16** All modules -- No `try { module.exports = ... } catch (e) {}` pattern for testability (documented in [multi-tampermonkey-guide.md](multi-tampermonkey-guide.md)). Fix: add export blocks to each module for future unit testing.
+- [x] **CR-17** `extractor-ui.js:664-669` -- `resetUI()` calls `location.reload()` without confirming. The user might have unsaved extracted data. Fix: add a confirmation check `if (state.extractedTickets.length > 0)` before reload, or auto-clear with warning.
+- [x] **CR-18** `extractor-api.js:12` -- Destructures `{ CONFIG, state, Logger, authHeaders }` from `ns` at module load. `CONFIG` and `state` are mutable objects so this works (reference semantics), but `authHeaders` is a function that could be reassigned. Minor risk. Fix: document the convention or reference `ns.*` directly.
+
+### Enhancement Requests (from review)
+
+- [ ] **CR-19** Add keyboard shortcut to toggle panel visibility (e.g., `Ctrl+Shift+E`)
+- [ ] **CR-20** Add CSV export option alongside Excel (lighter weight, no XLSX dependency)
+- [ ] **CR-21** Add "Export as you fetch" streaming mode for very large record sets (write to Excel per page instead of accumulating all in memory)
+- [ ] **CR-22** Add a "Query History" feature that saves the last 10 queries in GM storage
+
+---
+
+## Milestone Summary
+
+| Phase | Scope | Priority | Status |
+|-------|-------|----------|--------|
+| 1 | Style Guide Compliance | High | Complete |
+| 2 | Toolbox Architecture | High | Complete |
+| 3 | Update System | Medium | Complete |
+| 4 | Developer Attribution | Low | Complete |
+| 5 | Performance / Unlimited Records | High | Complete |
+| 6 | Modularization | High | Complete |
+| 7 | Bug Fixes / Cleanup | High | Complete |
+| 8 | Code Review Fixes | High | 17/18 done (CR-16 deferred) |
+
+---
+
 ## Version History
 
 | Version | Date | Changes |
 |---------|------|---------|
 | 1.0 | 2026-02-27 | Initial feature tracker created from v5.0.4 audit |
 | 2.0 | 2026-02-27 | All phases implemented - v6.0.0 complete |
+| 3.0 | 2026-02-27 | Phase 8 added - code review with 18 actionable findings + 4 enhancements |
+| 4.0 | 2026-02-27 | 17/18 CR items fixed in v6.0.3. CR-16 (test exports) deferred. Version check interval changed to 1 min. |

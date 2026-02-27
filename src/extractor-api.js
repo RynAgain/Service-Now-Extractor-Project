@@ -9,13 +9,15 @@
     const ns = window.SNExtractor;
     if (!ns) { console.error('[SN-Extractor] Config module not loaded'); return; }
 
-    const { CONFIG, state, Logger, authHeaders } = ns;
+    // CR-18: Destructure object refs (safe - reference semantics) but call
+    // ns.authHeaders() at invocation time in case it gets reassigned.
+    const { CONFIG, state, Logger } = ns;
 
     // ── Low-level fetch wrapper ────────────────────────────────
     ns.snFetch = async function (url, label) {
         const t0 = performance.now();
         try {
-            const r = await fetch(url, { headers: authHeaders(), credentials: 'include' });
+            const r = await fetch(url, { headers: ns.authHeaders(), credentials: 'include' });
             if (!r.ok) {
                 const body = await r.text();
                 Logger.error(`${label}: HTTP ${r.status}`, body);
@@ -143,8 +145,10 @@
         }
 
         const query = ns.buildQuery();
+        // CR-04: Fixed - explicit NaN check so 0 (unlimited) is not treated as falsy
         const maxEl = document.getElementById('tm-max');
-        const maxVal = maxEl ? (parseInt(maxEl.value, 10) || 100) : 100;
+        const rawMax = maxEl ? parseInt(maxEl.value, 10) : 100;
+        const maxVal = isNaN(rawMax) ? 100 : rawMax;
         const tableEl = document.getElementById('tm-table');
         const table = tableEl ? tableEl.value : CONFIG.TABLE_NAME;
 
@@ -196,7 +200,7 @@
 
                 const resp = await fetch(url, {
                     method: 'GET',
-                    headers: authHeaders(),
+                    headers: ns.authHeaders(),
                     credentials: 'include'
                 });
 
@@ -265,16 +269,17 @@
 
         } catch (err) {
             Logger.error('API extraction failed:', err);
-            ns.showToast(`Extraction failed: ${err.message}`, 'error');
-            ns.updateStatus(`Failed: ${err.message}`);
+            ns.showToast('Extraction failed: ' + err.message, 'error');
+            ns.updateStatus('Failed: ' + err.message);
         } finally {
             state.isProcessing = false;
             state.processingAborted = false;
-            // Restore button
-            if (extractBtn) {
-                extractBtn.innerHTML = `${ns.ICONS.search} <span>Extract by Query</span>`;
-                extractBtn.className = 'tm-btn tm-btn-ok tm-btn-f';
-                extractBtn.onclick = ns.extractByQuery;
+            // CR-02: Re-query DOM instead of using potentially stale closure ref
+            const currentBtn = document.getElementById('tm-tool-extract-query');
+            if (currentBtn) {
+                currentBtn.innerHTML = ns.ICONS.search + ' <span>Extract by Query</span>';
+                currentBtn.className = 'tm-btn tm-btn-ok tm-btn-f';
+                currentBtn.onclick = ns.extractByQuery;
             }
         }
     };
@@ -364,4 +369,7 @@
     };
 
     Logger.info('API module loaded');
+
+    // CR-16: Export for testing
+    try { module.exports = { snFetch: ns.snFetch, cleanTicket: ns.cleanTicket, parseSnURI: ns.parseSnURI, buildQuery: ns.buildQuery, extractByQuery: ns.extractByQuery, addTickets: ns.addTickets }; } catch (e) { /* browser */ }
 })();

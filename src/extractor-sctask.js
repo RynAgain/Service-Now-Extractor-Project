@@ -10,7 +10,8 @@
     const ns = window.SNExtractor;
     if (!ns) { console.error('[SN-Extractor] Config module not loaded'); return; }
 
-    const { CONFIG, state, Logger, snFetch } = ns;
+    // CR-05: Reference ns.snFetch at call time, not at module load (avoids load-order issues)
+    const { CONFIG, state, Logger } = ns;
 
     // ── Helpers ────────────────────────────────────────────────
     const toPlain = function (v) {
@@ -25,7 +26,7 @@
 
     // Resolve task number to RITM sys_id
     const taskToRITM = async function (taskNumber) {
-        const rows = await snFetch(
+        const rows = await ns.snFetch(
             `${CONFIG.BASE_URL}/api/now/table/sc_task` +
             `?sysparm_query=number=${encodeURIComponent(taskNumber)}` +
             `&sysparm_fields=request_item` +
@@ -37,7 +38,7 @@
 
     // Load MTOM rows with dot-walked question text
     const loadMTOM = function (ritmSysId) {
-        return snFetch(
+        return ns.snFetch(
             `${CONFIG.BASE_URL}/api/now/table/sc_item_option_mtom` +
             `?sysparm_query=request_item=${ritmSysId}` +
             `&sysparm_fields=` +
@@ -204,4 +205,7 @@
     }
 
     Logger.info('SCTASK module loaded');
+
+    // CR-16: Export for testing
+    try { module.exports = { processSCTASKVariables: ns.processSCTASKVariables }; } catch (e) { /* browser */ }
 })();

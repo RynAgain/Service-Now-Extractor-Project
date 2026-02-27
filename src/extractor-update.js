@@ -9,7 +9,8 @@
     const ns = window.SNExtractor;
     if (!ns) { console.error('[SN-Extractor] Config module not loaded'); return; }
 
-    const { SK, Logger, ICONS } = ns;
+    // CR-06: Reference ns.ICONS at call time, not at module load
+    const { SK, Logger } = ns;
 
     // ── Semantic version comparison ────────────────────────────
     ns.isNewerVersion = function (latest, current) {
@@ -103,27 +104,26 @@
 
         const overlay = document.createElement('div');
         overlay.className = 'tm-modal-bg';
-        overlay.innerHTML = `
-            <div class="tm-modal">
-                <h3>Update Available</h3>
-                <p>A new version of ServiceNow Extractor is available.</p>
-                <div class="tm-modal-ver">
-                    <span>Current: <strong>${ns.VERSION}</strong></span>
-                    <span>Latest: <strong>${latestVersion}</strong></span>
-                </div>
-                <div class="tm-modal-acts">
-                    <button class="tm-btn tm-btn-p tm-btn-f" id="tm-update-now">
-                        ${ICONS.download} Update Now
-                    </button>
-                    <button class="tm-btn tm-btn-s tm-btn-f" id="tm-remind-later">
-                        ${ICONS.refresh} Remind Later
-                    </button>
-                    <button class="tm-btn tm-btn-g tm-btn-f" id="tm-skip-version">
-                        Skip this version
-                    </button>
-                </div>
-            </div>
-        `;
+        overlay.innerHTML =
+            '<div class="tm-modal">' +
+                '<h3>Update Available</h3>' +
+                '<p>A new version of ServiceNow Extractor is available.</p>' +
+                '<div class="tm-modal-ver">' +
+                    '<span>Current: <strong>' + ns.VERSION + '</strong></span>' +
+                    '<span>Latest: <strong>' + latestVersion + '</strong></span>' +
+                '</div>' +
+                '<div class="tm-modal-acts">' +
+                    '<button class="tm-btn tm-btn-p tm-btn-f" id="tm-update-now">' +
+                        ns.ICONS.download + ' Update Now' +
+                    '</button>' +
+                    '<button class="tm-btn tm-btn-s tm-btn-f" id="tm-remind-later">' +
+                        ns.ICONS.refresh + ' Remind Later' +
+                    '</button>' +
+                    '<button class="tm-btn tm-btn-g tm-btn-f" id="tm-skip-version">' +
+                        'Skip this version' +
+                    '</button>' +
+                '</div>' +
+            '</div>';
 
         document.body.appendChild(overlay);
 
@@ -154,6 +154,7 @@
     };
 
     // ── Start periodic checking ────────────────────────────────
+    // CR-15: Use recursive setTimeout instead of setInterval to avoid drift/stacking
     ns.startVersionChecking = function () {
         if (!ns.FEATURE_FLAGS.UPDATE_CHECKER) return;
 
@@ -162,13 +163,20 @@
             ns.checkForUpdates(false);
         }, 5000);
 
-        // Periodic check
-        setInterval(function () {
-            ns.checkForUpdates(false);
-        }, ns.VERSION_CHECK_INTERVAL);
+        // Recursive scheduling - avoids setInterval drift on long-lived tabs
+        function scheduleNext() {
+            setTimeout(function () {
+                ns.checkForUpdates(false);
+                scheduleNext();
+            }, ns.VERSION_CHECK_INTERVAL);
+        }
+        scheduleNext();
 
         Logger.info('Version checking initialized');
     };
 
     Logger.info('Update module loaded');
+
+    // CR-16: Export for testing
+    try { module.exports = { isNewerVersion: ns.isNewerVersion, checkForUpdates: ns.checkForUpdates, startVersionChecking: ns.startVersionChecking }; } catch (e) { /* browser */ }
 })();

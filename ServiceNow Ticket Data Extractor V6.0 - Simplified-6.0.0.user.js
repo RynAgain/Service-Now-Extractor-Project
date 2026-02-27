@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         ServiceNow Ticket Data Extractor V6.0 - Simplified
 // @namespace    http://tampermonkey.net/
-// @version      6.0.1
+// @version      6.0.3
 // @description  Extract ServiceNow ticket metadata - full redesign with dark UI, toolbox architecture, paginated fetching, unlimited records
 // @author       Ryan Satterfield
 // @match        https://wfmprod.service-now.com/*
@@ -9,13 +9,13 @@
 // @grant        GM_getValue
 // @grant        GM_xmlhttpRequest
 // @require      https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js
-// @require      https://raw.githubusercontent.com/RynAgain/Service-Now-Extractor-Project/main/src/extractor-config.js?v=6.0.1
-// @require      https://raw.githubusercontent.com/RynAgain/Service-Now-Extractor-Project/main/src/extractor-styles.js?v=6.0.1
-// @require      https://raw.githubusercontent.com/RynAgain/Service-Now-Extractor-Project/main/src/extractor-api.js?v=6.0.1
-// @require      https://raw.githubusercontent.com/RynAgain/Service-Now-Extractor-Project/main/src/extractor-sctask.js?v=6.0.1
-// @require      https://raw.githubusercontent.com/RynAgain/Service-Now-Extractor-Project/main/src/extractor-export.js?v=6.0.1
-// @require      https://raw.githubusercontent.com/RynAgain/Service-Now-Extractor-Project/main/src/extractor-update.js?v=6.0.1
-// @require      https://raw.githubusercontent.com/RynAgain/Service-Now-Extractor-Project/main/src/extractor-ui.js?v=6.0.1
+// @require      https://raw.githubusercontent.com/RynAgain/Service-Now-Extractor-Project/main/src/extractor-config.js?v=6.0.3
+// @require      https://raw.githubusercontent.com/RynAgain/Service-Now-Extractor-Project/main/src/extractor-styles.js?v=6.0.3
+// @require      https://raw.githubusercontent.com/RynAgain/Service-Now-Extractor-Project/main/src/extractor-api.js?v=6.0.3
+// @require      https://raw.githubusercontent.com/RynAgain/Service-Now-Extractor-Project/main/src/extractor-sctask.js?v=6.0.3
+// @require      https://raw.githubusercontent.com/RynAgain/Service-Now-Extractor-Project/main/src/extractor-export.js?v=6.0.3
+// @require      https://raw.githubusercontent.com/RynAgain/Service-Now-Extractor-Project/main/src/extractor-update.js?v=6.0.3
+// @require      https://raw.githubusercontent.com/RynAgain/Service-Now-Extractor-Project/main/src/extractor-ui.js?v=6.0.3
 // @run-at       document-end
 // @updateURL    https://raw.githubusercontent.com/RynAgain/Service-Now-Extractor-Project/main/ServiceNow%20Ticket%20Data%20Extractor%20V6.0%20-%20Simplified-6.0.0.user.js
 // @downloadURL  https://raw.githubusercontent.com/RynAgain/Service-Now-Extractor-Project/main/ServiceNow%20Ticket%20Data%20Extractor%20V6.0%20-%20Simplified-6.0.0.user.js

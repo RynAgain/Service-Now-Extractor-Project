@@ -183,7 +183,8 @@
     color: var(--tm-accent-primary);
     border: 1px solid var(--tm-accent-primary);
 }
-.tm-btn-s:hover:not(:disabled) { background: rgba(62, 166, 255, 0.1); }
+/* CR-09: Use accent-aware alpha for hover */
+.tm-btn-s:hover:not(:disabled) { background: color-mix(in srgb, var(--tm-accent-primary) 10%, transparent); }
 
 .tm-btn-g {
     background: transparent;
@@ -373,27 +374,35 @@
 }
 
 /* ── Toast Notifications ───────────────────────────────── */
+/* CR-10: Use CSS custom properties with fallbacks for elements outside #tm-ext-root */
 .tm-toast-wrap {
+    --tm-bg-elevated: #2d2d2d;
+    --tm-border-subtle: #303030;
+    --tm-text-primary: #f1f1f1;
+    --tm-accent-primary: ${accent.primary};
+    --tm-accent-success: #2e7d32;
+    --tm-accent-warning: #f9a825;
+    --tm-accent-error: #d32f2f;
     position: fixed;
-    bottom: var(--tm-space-4, 16px);
-    right: var(--tm-space-4, 16px);
+    bottom: 16px;
+    right: 16px;
     z-index: 10000;
     display: flex;
     flex-direction: column;
-    gap: var(--tm-space-2, 8px);
+    gap: 8px;
     pointer-events: none;
     font-family: 'Roboto', 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
 }
 .tm-toast {
     display: flex;
     align-items: center;
-    gap: var(--tm-space-2, 8px);
+    gap: 8px;
     padding: 12px 16px;
-    background: #2d2d2d;
-    border: 1px solid #303030;
+    background: var(--tm-bg-elevated);
+    border: 1px solid var(--tm-border-subtle);
     border-radius: 8px;
     font-size: 12px;
-    color: #f1f1f1;
+    color: var(--tm-text-primary);
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
     opacity: 0;
     transform: translateX(20px);
@@ -403,15 +412,15 @@
 }
 .tm-toast.vis { opacity: 1; transform: translateX(0); }
 .tm-toast-i { flex-shrink: 0; }
-.tm-toast-info .tm-toast-i { color: #3ea6ff; }
-.tm-toast-ok .tm-toast-i   { color: #2e7d32; }
-.tm-toast-wn .tm-toast-i   { color: #f9a825; }
-.tm-toast-er .tm-toast-i   { color: #d32f2f; }
+.tm-toast-info .tm-toast-i { color: var(--tm-accent-primary); }
+.tm-toast-ok .tm-toast-i   { color: var(--tm-accent-success); }
+.tm-toast-wn .tm-toast-i   { color: var(--tm-accent-warning); }
+.tm-toast-er .tm-toast-i   { color: var(--tm-accent-error); }
 .tm-toast-m { flex: 1; }
 .tm-toast-a {
     background: transparent;
     border: none;
-    color: #3ea6ff;
+    color: var(--tm-accent-primary);
     font-size: 11px;
     font-weight: 500;
     cursor: pointer;
@@ -423,10 +432,16 @@
     font-family: inherit;
     white-space: nowrap;
 }
-.tm-toast-a:hover { background: rgba(62, 166, 255, 0.1); }
+.tm-toast-a:hover { background: color-mix(in srgb, var(--tm-accent-primary) 10%, transparent); }
 
 /* ── Update Modal ──────────────────────────────────────── */
+/* CR-10: Duplicate CSS vars for elements outside #tm-ext-root */
 .tm-modal-bg {
+    --tm-bg-primary: #0f0f0f;
+    --tm-bg-secondary: #1a1a1a;
+    --tm-border-subtle: #303030;
+    --tm-text-primary: #f1f1f1;
+    --tm-text-secondary: #aaa;
     position: fixed;
     inset: 0;
     background: rgba(0, 0, 0, 0.6);
@@ -437,21 +452,21 @@
     font-family: 'Roboto', 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
 }
 .tm-modal {
-    background: #1a1a1a;
-    border: 1px solid #303030;
+    background: var(--tm-bg-secondary);
+    border: 1px solid var(--tm-border-subtle);
     border-radius: 8px;
     padding: 24px;
     max-width: 360px;
     width: 90%;
-    color: #f1f1f1;
+    color: var(--tm-text-primary);
 }
 .tm-modal h3 { font-size: 16px; font-weight: 600; margin: 0 0 16px 0; }
-.tm-modal p  { font-size: 12px; color: #aaa; margin: 0 0 12px 0; line-height: 1.5; }
+.tm-modal p  { font-size: 12px; color: var(--tm-text-secondary); margin: 0 0 12px 0; line-height: 1.5; }
 .tm-modal-ver {
     display: flex;
     justify-content: space-between;
     padding: 12px;
-    background: #0f0f0f;
+    background: var(--tm-bg-primary);
     border-radius: 4px;
     margin-bottom: 16px;
     font-size: 12px;
@@ -482,6 +497,12 @@
     padding: var(--tm-space-3);
 }
 
+/* ── Utility Classes ───────────────────────────────────── */
+/* CR-11: Small button variant for Reset UI */
+.tm-btn-xs { padding: 2px 8px; font-size: 10px; min-height: 20px; }
+/* CR-12: Status top margin */
+.tm-status-top { margin-top: var(--tm-space-3); }
+
 /* ── Badge ─────────────────────────────────────────────── */
 .tm-badge {
     display: inline-flex;
@@ -501,4 +522,7 @@
     };
 
     ns.Logger.info('Styles module loaded');
+
+    // CR-16: Export for testing
+    try { module.exports = { injectStyles: ns.injectStyles }; } catch (e) { /* browser */ }
 })();
