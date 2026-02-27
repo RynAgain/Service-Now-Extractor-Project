@@ -14,7 +14,7 @@
 
     ns.VERSION = CURRENT_VERSION;
     ns.GITHUB_VERSION_URL =
-        'https://raw.githubusercontent.com/RynAgain/ServiceNow-Extractor/main/ServiceNow%20Ticket%20Data%20Extractor%20V6.0%20-%20Simplified-6.0.0.user.js';
+        'https://raw.githubusercontent.com/RynAgain/Service-Now-Extractor-Project/main/ServiceNow%20Ticket%20Data%20Extractor%20V6.0%20-%20Simplified-6.0.0.user.js';
     // NOTE: raw.githubusercontent.com serves files directly (no 302 redirect).
     // The repo must exist and files must be pushed to main branch for URLs to resolve.
     ns.VERSION_CHECK_INTERVAL = 24 * 60 * 60 * 1000; // 24 h
