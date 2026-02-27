@@ -237,11 +237,34 @@
 
     // ── Detect Current Page Query ──────────────────────────────
     ns.detectCurrentPageQuery = function () {
-        const query = ns.parseSnURI();
+        const result = ns.parseSnURI();
+        const query = typeof result === 'object' ? result.query : result;
+        const detectedTable = typeof result === 'object' ? result.table : null;
+
         if (query) {
             const el = document.getElementById('tm-query');
             if (el) el.value = query;
-            ns.showToast('Query detected from current page', 'success');
+
+            // Auto-set table if detected from portal URL
+            if (detectedTable) {
+                const tableEl = document.getElementById('tm-table');
+                if (tableEl) {
+                    // Check if detected table is in our options
+                    const options = Array.from(tableEl.options).map(function (o) { return o.value; });
+                    if (options.includes(detectedTable)) {
+                        tableEl.value = detectedTable;
+                        CONFIG.TABLE_NAME = detectedTable;
+                        ns.showToast('Query detected (table: ' + detectedTable + ')', 'success');
+                    } else {
+                        ns.showToast('Query detected (table "' + detectedTable + '" not in dropdown, using current)', 'success');
+                    }
+                } else {
+                    ns.showToast('Query detected from current page', 'success');
+                }
+            } else {
+                ns.showToast('Query detected from current page', 'success');
+            }
+
             ns.debouncedSave();
         } else {
             ns.showToast('No query detected on current page', 'warning');
@@ -600,8 +623,9 @@
         // Auto-detect query on list pages
         setTimeout(function () {
             var href = window.location.href;
-            if (href.includes('list.do') || href.includes('nav_to.do')) {
-                var autoQuery = ns.parseSnURI();
+            if (href.includes('list.do') || href.includes('nav_to.do') || href.includes('/wfm')) {
+                var result = ns.parseSnURI();
+                var autoQuery = result.query || '';
                 if (autoQuery && !settings.query) {
                     ns.updateStatus('Auto-detected query: ' + autoQuery.substring(0, 50) + '...');
                 }

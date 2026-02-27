@@ -80,10 +80,13 @@
     //   1. nav_to.do?uri=...sysparm_query=... (classic navigation)
     //   2. list.do?sysparm_query=... (classic list)
     //   3. /wfm?id=list&table=...&filter=... (WFM portal)
+    // Returns { query: string, table: string|null } for callers that need both,
+    // but also works as a plain string via .toString() for backward compat.
     ns.parseSnURI = function (uri) {
         uri = uri || window.location.href;
         try {
             let query = '';
+            let table = null;
             const qsPart = uri.split('?')[1] || '';
             const params = new URLSearchParams(qsPart);
 
@@ -91,31 +94,28 @@
                 // Classic nav_to wrapper
                 const inner = params.get('uri');
                 if (inner) {
-                    const match = decodeURIComponent(inner).match(/sysparm_query=([^&]+)/);
+                    const decoded = decodeURIComponent(inner);
+                    const match = decoded.match(/sysparm_query=([^&]+)/);
                     if (match) query = decodeURIComponent(match[1]);
+                    // Try to extract table from inner URI path (e.g., sc_task_list.do)
+                    const tableMatch = decoded.match(/^([a-z_]+)_list\.do/);
+                    if (tableMatch) table = tableMatch[1];
                 }
             } else if (params.get('filter')) {
                 // WFM portal: /wfm?id=list&table=task&filter=...
                 query = params.get('filter');
+                table = params.get('table') || null;
             } else if (params.get('sysparm_query')) {
                 // Classic list.do
                 query = params.get('sysparm_query');
             }
 
-            // Also extract table name from WFM portal URLs
-            if (!query && !params.get('sysparm_query')) {
-                // Nothing found
-            }
-            const portalTable = params.get('table');
-            if (portalTable && query) {
-                // Store detected table for convenience (doesn't override user selection)
-                Logger.debug('Detected portal table: ' + portalTable);
-            }
+            if (table) Logger.debug('Detected table from URL: ' + table);
 
-            return query;
+            return { query: query, table: table, toString: function () { return query; } };
         } catch (e) {
             Logger.debug('URI parse error', e);
-            return '';
+            return { query: '', table: null, toString: function () { return ''; } };
         }
     };
 
