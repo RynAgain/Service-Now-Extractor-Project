@@ -25,6 +25,8 @@
         EXTRACT_QUERY:      true,
         SCTASK_PROCESSING:  true,
         EXPORT_EXCEL:       true,
+        EXPORT_CSV:         true,
+        STREAM_EXPORT:      true,
         COPY_JSON:          true,
         AUTO_DETECT_QUERY:  true,
         CLEAR_DATA:         true,
