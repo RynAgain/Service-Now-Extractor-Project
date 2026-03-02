@@ -509,6 +509,51 @@
     padding: var(--tm-space-3);
 }
 
+/* ── Column Order Manager ──────────────────────────────── */
+.tm-col-list {
+    max-height: 200px;
+    overflow-y: auto;
+    border: 1px solid var(--tm-border-subtle);
+    border-radius: var(--tm-radius-sm);
+    background: var(--tm-bg-primary);
+    padding: var(--tm-space-1);
+}
+.tm-col-item {
+    display: flex;
+    align-items: center;
+    gap: var(--tm-space-1);
+    padding: 3px var(--tm-space-2);
+    font-size: var(--tm-font-xs);
+    color: var(--tm-text-secondary);
+    border-radius: var(--tm-radius-sm);
+}
+.tm-col-item:hover { background: var(--tm-bg-tertiary); color: var(--tm-text-primary); }
+.tm-col-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tm-col-btn {
+    background: transparent;
+    border: none;
+    color: var(--tm-text-disabled);
+    cursor: pointer;
+    padding: 2px 4px;
+    font-size: 12px;
+    line-height: 1;
+    border-radius: 2px;
+    font-family: inherit;
+    min-width: 20px;
+    min-height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.tm-col-btn:hover { color: var(--tm-text-primary); background: var(--tm-bg-elevated); }
+.tm-col-btn-del:hover { color: var(--tm-accent-error); }
+.tm-col-empty {
+    text-align: center;
+    padding: var(--tm-space-3);
+    color: var(--tm-text-disabled);
+    font-size: var(--tm-font-xs);
+}
+
 /* ── Utility Classes ───────────────────────────────────── */
 /* CR-11: Small button variant for Reset UI */
 .tm-btn-xs { padding: 2px 8px; font-size: 10px; min-height: 20px; }

@@ -182,6 +182,7 @@
 
         state.isProcessing = true;
         state.processingAborted = false;
+        state.extractAborted = false;   // CR-24: per-operation flag
 
         // Swap button to abort mode
         const extractBtn = document.getElementById('tm-tool-extract-query');
@@ -190,6 +191,7 @@
             extractBtn.className = 'tm-btn tm-btn-er tm-btn-f';
             extractBtn.onclick = function () {
                 state.processingAborted = true;
+                state.extractAborted = true;    // CR-24
                 ns.showToast('Aborting extraction...', 'warning');
             };
         }
@@ -206,7 +208,7 @@
             ns.updateProgress(0, targetCount === Infinity ? 1 : targetCount, 'Starting extraction...');
 
             while (totalFetched < targetCount) {
-                if (state.processingAborted) break;
+                if (state.extractAborted) break;    // CR-24: check own flag
 
                 const batchSize = targetCount === Infinity
                     ? pageSize
@@ -268,7 +270,7 @@
                 await new Promise(r => setTimeout(r, 100));
             }
 
-            if (state.processingAborted) {
+            if (state.extractAborted) {
                 ns.showToast(`Aborted after ${totalFetched} records`, 'warning');
                 ns.updateStatus(`Aborted after ${totalFetched} records`);
             }
@@ -285,7 +287,7 @@
             });
 
             ns.updateExportBtns();
-            if (!state.processingAborted) {
+            if (!state.extractAborted) {
                 ns.showToast(`Extracted ${newCount} new tickets (${totalFetched} total fetched)`, 'success');
                 ns.updateStatus(`Extracted ${newCount} new tickets via API`);
             }
@@ -297,6 +299,7 @@
         } finally {
             state.isProcessing = false;
             state.processingAborted = false;
+            state.extractAborted = false;   // CR-24
             // CR-02: Re-query DOM instead of using potentially stale closure ref
             const currentBtn = document.getElementById('tm-tool-extract-query');
             if (currentBtn) {

@@ -82,7 +82,7 @@
 
     // Get variables for a single task
     const getTaskVariables = async function (taskNumber) {
-        if (state.processingAborted) return {};
+        if (state.sctaskAborted) return {};     // CR-24: per-operation flag
         Logger.debug(`Processing ${taskNumber}...`);
 
         const ritmId = await taskToRITM(taskNumber);
@@ -120,6 +120,7 @@
 
         state.isProcessing = true;
         state.processingAborted = false;
+        state.sctaskAborted = false;    // CR-24: per-operation flag
         updateSCTASKButton(true);
 
         try {
@@ -130,7 +131,7 @@
             let variablesFound = 0;
 
             for (let i = 0; i < tasks.length; i += CONFIG.SCTASK_CONCURRENCY) {
-                if (state.processingAborted) break;
+                if (state.sctaskAborted) break;     // CR-24: check own flag
 
                 const batch = tasks.slice(i, i + CONFIG.SCTASK_CONCURRENCY);
                 const results = await Promise.allSettled(
@@ -163,7 +164,7 @@
                 }
             }
 
-            if (!state.processingAborted) {
+            if (!state.sctaskAborted) {
                 ns.showToast(
                     `Processed ${processed} tickets, ${variablesFound} variables found`,
                     'success'
@@ -181,6 +182,7 @@
         } finally {
             state.isProcessing = false;
             state.processingAborted = false;
+            state.sctaskAborted = false;    // CR-24
             updateSCTASKButton(false);
         }
     };
@@ -195,6 +197,7 @@
             btn.className = 'tm-btn tm-btn-er tm-btn-f';
             btn.onclick = function () {
                 state.processingAborted = true;
+                state.sctaskAborted = true;     // CR-24
                 ns.showToast('Aborting SCTASK processing...', 'warning');
             };
         } else {

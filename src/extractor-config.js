@@ -6,7 +6,7 @@
 (function () {
     'use strict';
 
-    const CURRENT_VERSION = '6.0.6';
+    const CURRENT_VERSION = '6.0.10';
 
     // ── Shared Namespace ───────────────────────────────────────
     window.SNExtractor = window.SNExtractor || {};
@@ -42,7 +42,10 @@
         dragOffset: { x: 0, y: 0 },
         showSettings: false,
         isProcessing: false,
-        processingAborted: false,
+        processingAborted: false,       // legacy (kept for backward compat)
+        extractAborted: false,          // CR-24: per-operation abort flags
+        streamAborted: false,           // CR-24
+        sctaskAborted: false,           // CR-24
         currentAccent: 'blue',
         currentMode: 'dark',   // 'dark' or 'light'
         debugMode: false
@@ -70,7 +73,11 @@
     ns.CONFIG = {
         BASE_URL: window.location.origin,
         TABLE_NAME: 'sc_task',
-        PAGE_SIZE: 1000,
+        // CR-25: ServiceNow enforces a hard response cap at 1000 rows.
+        // Using 1000 makes it impossible to distinguish "exact page" from
+        // "more data available". Use 500 so a full page always signals
+        // that additional records may exist.
+        PAGE_SIZE: 500,
         SCTASK_CONCURRENCY: 3,
         SCTASK_DELAY_MS: 50,
 

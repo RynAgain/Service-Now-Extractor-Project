@@ -203,7 +203,11 @@
             if (el) GM_setValue(SK.ASSIGNED, el.value);
 
             el = document.getElementById('tm-max');
-            if (el) GM_setValue(SK.MAX, parseInt(el.value, 10) || 100);
+            // CR-23: Use explicit NaN check - 0 means "unlimited" and must not coerce to 100
+            if (el) {
+                var parsed = parseInt(el.value, 10);
+                GM_setValue(SK.MAX, isNaN(parsed) ? 100 : parsed);
+            }
 
             el = document.getElementById('tm-query');
             if (el) GM_setValue(SK.QUERY, el.value);
@@ -442,6 +446,12 @@
 
                 // Toggle switches
                 '<div class="tm-sec" id="tm-stg-toggles"></div>' +
+
+                // Column order manager
+                '<div class="tm-sec">' +
+                    '<label class="tm-lbl">Variable Column Order</label>' +
+                    '<div id="tm-col-manager"></div>' +
+                '</div>' +
 
                 // Check for updates
                 (FEATURE_FLAGS.UPDATE_CHECKER
@@ -854,8 +864,117 @@
         historyArea.appendChild(select);
     };
 
-    // Render query history after UI is built (called from createUI flow)
-    setTimeout(function () { ns.renderQueryHistory(); }, 200);
+    // ── Column Order Manager ───────────────────────────────────
+    ns.renderColumnManager = function () {
+        const container = document.getElementById('tm-col-manager');
+        if (!container) return;
+
+        const order = typeof ns.getVarColumnOrder === 'function' ? ns.getVarColumnOrder() : [];
+        container.innerHTML = '';
+
+        if (order.length === 0) {
+            container.innerHTML = '<div class="tm-col-empty">No variable columns registered yet. Extract SCTASK variables first.</div>';
+            return;
+        }
+
+        // Header row with clear button
+        const header = document.createElement('div');
+        header.style.cssText = 'display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;';
+        header.innerHTML = '<span class="tm-hint">' + order.length + ' columns</span>';
+        const clearBtn = document.createElement('button');
+        clearBtn.className = 'tm-btn tm-btn-er tm-btn-xs';
+        clearBtn.textContent = 'Reset Order';
+        clearBtn.addEventListener('click', function () {
+            if (confirm('Reset the variable column order? It will be rebuilt on next SCTASK extraction.')) {
+                GM_setValue('tm_ext_var_order', []);
+                ns.renderColumnManager();
+                ns.showToast('Column order reset', 'info');
+            }
+        });
+        header.appendChild(clearBtn);
+        container.appendChild(header);
+
+        // Sortable list
+        const list = document.createElement('div');
+        list.className = 'tm-col-list';
+
+        function renderList() {
+            list.innerHTML = '';
+            const currentOrder = typeof ns.getVarColumnOrder === 'function' ? ns.getVarColumnOrder() : [];
+
+            currentOrder.forEach(function (col, idx) {
+                const item = document.createElement('div');
+                item.className = 'tm-col-item';
+
+                // Display name (strip var_ prefix for readability)
+                const name = document.createElement('span');
+                name.className = 'tm-col-name';
+                name.textContent = col.replace(/^var_/, '').replace(/_/g, ' ');
+                name.title = col;
+
+                // Move up
+                const upBtn = document.createElement('button');
+                upBtn.className = 'tm-col-btn';
+                upBtn.innerHTML = '&#9650;'; // up triangle
+                upBtn.title = 'Move up';
+                upBtn.disabled = idx === 0;
+                upBtn.addEventListener('click', function () {
+                    if (idx > 0) {
+                        var arr = ns.getVarColumnOrder();
+                        var temp = arr[idx - 1];
+                        arr[idx - 1] = arr[idx];
+                        arr[idx] = temp;
+                        GM_setValue('tm_ext_var_order', arr);
+                        renderList();
+                    }
+                });
+
+                // Move down
+                const downBtn = document.createElement('button');
+                downBtn.className = 'tm-col-btn';
+                downBtn.innerHTML = '&#9660;'; // down triangle
+                downBtn.title = 'Move down';
+                downBtn.disabled = idx === currentOrder.length - 1;
+                downBtn.addEventListener('click', function () {
+                    if (idx < currentOrder.length - 1) {
+                        var arr = ns.getVarColumnOrder();
+                        var temp = arr[idx + 1];
+                        arr[idx + 1] = arr[idx];
+                        arr[idx] = temp;
+                        GM_setValue('tm_ext_var_order', arr);
+                        renderList();
+                    }
+                });
+
+                // Remove
+                const delBtn = document.createElement('button');
+                delBtn.className = 'tm-col-btn tm-col-btn-del';
+                delBtn.innerHTML = '&times;';
+                delBtn.title = 'Remove from order';
+                delBtn.addEventListener('click', function () {
+                    var arr = ns.getVarColumnOrder();
+                    arr.splice(idx, 1);
+                    GM_setValue('tm_ext_var_order', arr);
+                    renderList();
+                });
+
+                item.appendChild(upBtn);
+                item.appendChild(downBtn);
+                item.appendChild(name);
+                item.appendChild(delBtn);
+                list.appendChild(item);
+            });
+        }
+
+        renderList();
+        container.appendChild(list);
+    };
+
+    // Render query history and column manager after UI is built
+    setTimeout(function () {
+        ns.renderQueryHistory();
+        ns.renderColumnManager();
+    }, 200);
 
     Logger.info('UI module loaded');
 

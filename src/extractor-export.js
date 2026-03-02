@@ -213,6 +213,19 @@
 
         state.isProcessing = true;
         state.processingAborted = false;
+        state.streamAborted = false;    // CR-24: per-operation flag
+
+        // CR-24: Swap stream export button to abort mode
+        var streamBtn = document.getElementById('tm-tool-stream-export');
+        if (streamBtn) {
+            streamBtn.innerHTML = ns.ICONS.stop + ' <span>Abort Stream</span>';
+            streamBtn.className = 'tm-btn tm-btn-er tm-btn-f';
+            streamBtn.onclick = function () {
+                state.processingAborted = true;
+                state.streamAborted = true;
+                ns.showToast('Aborting streaming export...', 'warning');
+            };
+        }
 
         try {
             if (typeof XLSX === 'undefined') {
@@ -230,7 +243,7 @@
             ns.updateProgress(0, targetCount === Infinity ? 1 : targetCount, 'Starting streaming export...');
 
             while (totalFetched < targetCount) {
-                if (state.processingAborted) break;
+                if (state.streamAborted) break;     // CR-24: check own flag
 
                 var batchSize = targetCount === Infinity
                     ? pageSize
@@ -289,7 +302,7 @@
                 await new Promise(function (r) { setTimeout(r, 100); });
             }
 
-            if (state.processingAborted) {
+            if (state.streamAborted) {
                 ns.showToast('Streaming export aborted after ' + totalFetched + ' records', 'warning');
                 ns.updateStatus('Export aborted');
                 return;
@@ -315,6 +328,15 @@
         } finally {
             state.isProcessing = false;
             state.processingAborted = false;
+            state.streamAborted = false;    // CR-24
+
+            // CR-24: Restore stream export button
+            var currentStreamBtn = document.getElementById('tm-tool-stream-export');
+            if (currentStreamBtn) {
+                currentStreamBtn.innerHTML = ns.ICONS.download + ' Stream Export to Excel';
+                currentStreamBtn.className = 'tm-btn tm-btn-s tm-btn-f';
+                currentStreamBtn.onclick = ns.streamExportToExcel;
+            }
         }
     };
 
